@@ -7,8 +7,7 @@ classifier = pipeline("text-classification")
 
 
 def speech_to_text(speech):
-    text = asr(speech)["text"]
-    return text
+    return asr(speech)["text"]
 
 
 def text_to_sentiment(text):

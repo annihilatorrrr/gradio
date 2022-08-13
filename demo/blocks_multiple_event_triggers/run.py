@@ -12,8 +12,7 @@ def get_plot(lib, time):
     data = data.groupby("category").get_group("with_mirrors").sort_values("date")
     start_date = date.today() - relativedelta(months=int(time.split(" ")[0]))
     data = data[(data['date'] > str(start_date))]
-    chart = data.plot(x="date", y="downloads")
-    return chart
+    return data.plot(x="date", y="downloads")
 
 
 with gr.Blocks() as demo:

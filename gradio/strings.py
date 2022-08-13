@@ -34,7 +34,7 @@ en = {
 
 try:
     updated_messaging = requests.get(MESSAGING_API_ENDPOINT, timeout=3).json()
-    en.update(updated_messaging)
+    en |= updated_messaging
 except (
     requests.ConnectionError,
     requests.exceptions.ReadTimeout,

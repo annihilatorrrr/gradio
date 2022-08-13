@@ -125,8 +125,7 @@ class Interface(Blocks):
         """
         interface_info = load_from_pipeline(pipeline)
         kwargs = dict(interface_info, **kwargs)
-        interface = cls(**kwargs)
-        return interface
+        return cls(**kwargs)
 
     def __init__(
         self,
@@ -640,10 +639,10 @@ class Interface(Blocks):
         repr += "\n" + "-" * len(repr)
         repr += "\ninputs:"
         for component in self.input_components:
-            repr += "\n|-{}".format(str(component))
+            repr += f"\n|-{str(component)}"
         repr += "\noutputs:"
         for component in self.output_components:
-            repr += "\n|-{}".format(str(component))
+            repr += f"\n|-{str(component)}"
         return repr
 
     async def submit_func(self, *args):
@@ -707,13 +706,12 @@ class Interface(Blocks):
             for i, input_component in enumerate(self.input_components)
         ]
         predictions = await self.run_prediction(processed_input)
-        processed_output = [
+        return [
             output_component.postprocess(predictions[i])
             if predictions[i] is not None
             else None
             for i, output_component in enumerate(self.output_components)
         ]
-        return processed_output
 
     async def interpret_func(self, *args):
         return await self.interpret(args) + [
@@ -734,7 +732,7 @@ class Interface(Blocks):
         Passes a few samples through the function to test if the inputs/outputs
         components are consistent with the function parameter and return values.
         """
-        print("Test launch: {}()...".format(self.__name__), end=" ")
+        print(f"Test launch: {self.__name__}()...", end=" ")
         raw_input = []
         for input_component in self.input_components:
             if input_component.test_input is None:
@@ -780,7 +778,7 @@ class TabbedInterface(Blocks):
             css=css,
         )
         if tab_names is None:
-            tab_names = ["Tab {}".format(i) for i in range(len(interface_list))]
+            tab_names = [f"Tab {i}" for i in range(len(interface_list))]
         with self:
             with Tabs():
                 for (interface, tab_name) in zip(interface_list, tab_names):

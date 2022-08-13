@@ -142,13 +142,8 @@ class Tabs(BlockContext):
     def get_config(self):
         return {"selected": self.selected, **super().get_config()}
 
-    def update(
-        selected: Optional[int | str] = None,
-    ):
-        return {
-            "selected": selected,
-            "__type__": "update",
-        }
+    def update(self):
+        return {"selected": self, "__type__": "update"}
 
     def change(self, fn: Callable, inputs: List[Component], outputs: List[Component]):
         """

@@ -81,7 +81,7 @@ def encode_plot_to_base64(plt):
         plt.savefig(output_bytes, format="png")
         bytes_data = output_bytes.getvalue()
     base64_str = str(base64.b64encode(bytes_data), "utf-8")
-    return "data:image/png;base64," + base64_str
+    return f"data:image/png;base64,{base64_str}"
 
 
 def encode_array_to_base64(image_array):
@@ -90,7 +90,7 @@ def encode_array_to_base64(image_array):
         PIL_image.save(output_bytes, "PNG")
         bytes_data = output_bytes.getvalue()
     base64_str = str(base64.b64encode(bytes_data), "utf-8")
-    return "data:image/png;base64," + base64_str
+    return f"data:image/png;base64,{base64_str}"
 
 
 def resize_and_crop(img, size, crop_type="center"):
@@ -204,14 +204,15 @@ def decode_base64_to_file(encoding, encryption_key=None, file_path=None):
         filename = os.path.basename(file_path)
         prefix = filename
         if "." in filename:
-            prefix = filename[0 : filename.index(".")]
+            prefix = filename[:filename.index(".")]
             extension = filename[filename.index(".") + 1 :]
     if extension is None:
         file_obj = tempfile.NamedTemporaryFile(delete=False, prefix=prefix)
     else:
         file_obj = tempfile.NamedTemporaryFile(
-            delete=False, prefix=prefix, suffix="." + extension
+            delete=False, prefix=prefix, suffix=f".{extension}"
         )
+
     if encryption_key is not None:
         data = encryptor.encrypt(encryption_key, data)
     file_obj.write(data)
@@ -223,14 +224,15 @@ def create_tmp_copy_of_file(file_path):
     file_name = os.path.basename(file_path)
     prefix, extension = file_name, None
     if "." in file_name:
-        prefix = file_name[0 : file_name.index(".")]
+        prefix = file_name[:file_name.index(".")]
         extension = file_name[file_name.index(".") + 1 :]
     if extension is None:
         file_obj = tempfile.NamedTemporaryFile(delete=False, prefix=prefix)
     else:
         file_obj = tempfile.NamedTemporaryFile(
-            delete=False, prefix=prefix, suffix="." + extension
+            delete=False, prefix=prefix, suffix=f".{extension}"
         )
+
     shutil.copy2(file_path, file_obj.name)
     return file_obj
 
@@ -390,10 +392,7 @@ def _convert(image, dtype, force_copy=False, uniform=False):
 
     image = np.asarray(image)
     dtypeobj_in = image.dtype
-    if dtype is np.floating:
-        dtypeobj_out = np.dtype("float64")
-    else:
-        dtypeobj_out = np.dtype(dtype)
+    dtypeobj_out = np.dtype("float64") if dtype is np.floating else np.dtype(dtype)
     dtype_in = dtypeobj_in.type
     dtype_out = dtypeobj_out.type
     kind_in = dtypeobj_in.kind

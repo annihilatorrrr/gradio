@@ -25,7 +25,7 @@ def outbreak(plot_type, r, month, countries, social_distancing):
     df = pd.DataFrame({'day': x})
     for country in countries:
         df[country] = ( x ** (r) * (pop_count[country] + 1))
-        
+
 
     if plot_type == "Matplotlib":
         fig = plt.figure()
@@ -46,8 +46,7 @@ def outbreak(plot_type, r, month, countries, social_distancing):
         p = bk.figure(title="Outbreak in " + month, x_axis_label="Cases", y_axis_label="Days Since Day 0")
         for country in countries:
             p.line(x='day', y=country, line_width=2, source=source)
-        item_text = json_item(p, "plotDiv")
-        return item_text
+        return json_item(p, "plotDiv")
 
 inputs = [
         gr.Dropdown(["Matplotlib", "Plotly", "Bokeh"], label="Plot Type"),

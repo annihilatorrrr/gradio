@@ -4,8 +4,7 @@ scores = []
 
 def track_score(score):
     scores.append(score)
-    top_scores = sorted(scores, reverse=True)[:3]
-    return top_scores
+    return sorted(scores, reverse=True)[:3]
 
 demo = gr.Interface(
     track_score, 

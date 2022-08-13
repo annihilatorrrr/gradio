@@ -46,7 +46,11 @@ for demo_name, port in demo_port_sets:
         with open(demo_file, "r") as file:
             filedata = file.read()
         assert "demo.launch()" in filedata, demo_name + " has no demo.launch()\n" + filedata
-        filedata = filedata.replace(f"demo.launch()", f"demo.launch(server_port={port}, _frontend=False)")
+        filedata = filedata.replace(
+            "demo.launch()",
+            f"demo.launch(server_port={port}, _frontend=False)",
+        )
+
         with open(demo_2_file, "w") as file:
             file.write(filedata)
         demo_thread = threading.Thread(target=launch_demo, args=(demo_folder,))
@@ -62,25 +66,24 @@ while True:
     stayed_up = []
     for demo_name, _ in demo_port_sets:
         r = requests.get(f"http://localhost:80/demo/{demo_name}/config")
-        if r.status_code != 200:
-            if demo_name in demos_up:
-                print(demo_name, "came down. Restarting.")
-                t = demo_threads[demo_name]
-                t.raise_exception()
-                t.join()
-                demo_thread = threading.Thread(target=launch_demo, args=(demo_name,))
-                demo_thread.start()
-                demo_threads[demo_name] = demo_thread
-                demos_up.remove(demo_name)
-            else:
-                still_down.append(demo_name)
-        else:
+        if r.status_code == 200:
             if demo_name in demos_up:
                 stayed_up.append(demo_name)
             else:
                 demos_up.add(demo_name)
                 time_to_up[demo_name] += time.time()
                 print(demo_name, "is up!")
+        elif demo_name in demos_up:
+            print(demo_name, "came down. Restarting.")
+            t = demo_threads[demo_name]
+            t.raise_exception()
+            t.join()
+            demo_thread = threading.Thread(target=launch_demo, args=(demo_name,))
+            demo_thread.start()
+            demo_threads[demo_name] = demo_thread
+            demos_up.remove(demo_name)
+        else:
+            still_down.append(demo_name)
     print("stayed up: " + " ".join(stayed_up))
     print("still_down: " + " ".join(still_down))
     print("time_to_up: " + ", ".join([f"({d}, {t})" for d, t in time_to_up.items() if t > 0]))

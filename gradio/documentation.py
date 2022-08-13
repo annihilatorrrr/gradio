@@ -62,7 +62,9 @@ def document_fn(fn: Callable) -> Tuple[str, List[Dict], Dict, Optional[str]]:
                 "    "
             ), f"Documentation format for {fn.__name__} has format error in line: {line}"
             line = line[4:]
-            if mode == "parameter":
+            if mode == "example":
+                examples.append(line)
+            elif mode == "parameter":
                 colon_index = line.index(": ")
                 assert (
                     colon_index > -1
@@ -72,8 +74,6 @@ def document_fn(fn: Callable) -> Tuple[str, List[Dict], Dict, Optional[str]]:
                 parameters[parameter] = parameter_doc
             elif mode == "return":
                 returns.append(line)
-            elif mode == "example":
-                examples.append(line)
     description_doc = " ".join(description)
     parameter_docs = []
     for param_name, param in signature.parameters.items():
@@ -99,16 +99,14 @@ def document_fn(fn: Callable) -> Tuple[str, List[Dict], Dict, Optional[str]]:
             parameter_doc["kwargs"] = True
         parameter_docs.append(parameter_doc)
     assert (
-        len(parameters) == 0
+        not parameters
     ), f"Documentation format for {fn.__name__} documents nonexistent parameters: {''.join(parameters.keys())}"
-    if len(returns) == 0:
+
+    if not returns or len(returns) != 1:
         return_docs = {}
-    elif len(returns) == 1:
-        return_docs = {"annotation": signature.return_annotation, "doc": returns[0]}
     else:
-        return_docs = {}
-        # raise ValueError("Does not support multiple returns yet.")
-    examples_doc = "\n".join(examples) if len(examples) > 0 else None
+        return_docs = {"annotation": signature.return_annotation, "doc": returns[0]}
+    examples_doc = "\n".join(examples) if examples else None
     return description_doc, parameter_docs, return_docs, examples_doc
 
 
@@ -128,14 +126,13 @@ def document_cls(cls):
             tag = line[: line.index(":")].lower()
             value = line[line.index(":") + 2 :]
             tags[tag] = value
+        elif mode == "description":
+            description_lines.append(line if line.strip() else "<br>")
         else:
-            if mode == "description":
-                description_lines.append(line if line.strip() else "<br>")
-            else:
-                assert (
-                    line.startswith("    ") or not line.strip()
-                ), f"Documentation format for {cls.__name__} has format error in line: {line}"
-                tags[mode].append(line[4:])
+            assert (
+                line.startswith("    ") or not line.strip()
+            ), f"Documentation format for {cls.__name__} has format error in line: {line}"
+            tags[mode].append(line[4:])
     if "example" in tags:
         example = "\n".join(tags["example"])
         del tags["example"]

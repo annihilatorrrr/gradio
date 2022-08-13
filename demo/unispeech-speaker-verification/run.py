@@ -67,12 +67,11 @@ def similarity_fn(path1, path2):
     emb2 = torch.nn.functional.normalize(emb2, dim=-1).cpu()
     similarity = cosine_sim(emb1, emb2).numpy()[0]
 
-    if similarity >= THRESHOLD:
-        output = OUTPUT_OK.format(similarity * 100)
-    else:
-        output = OUTPUT_FAIL.format(similarity * 100)
-
-    return output
+    return (
+        OUTPUT_OK.format(similarity * 100)
+        if similarity >= THRESHOLD
+        else OUTPUT_FAIL.format(similarity * 100)
+    )
 
 
 inputs = [

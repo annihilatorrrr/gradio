@@ -34,8 +34,7 @@ for guide_folder in os.listdir(GRADIO_GUIDES_DIR):
         guide_filename = os.path.join(guide_folder, guide_filename)
         if not os.path.isfile(guide_filename):
             continue
-        with open(guide_filename) as guide_file:
-            guide_content = guide_file.read()
+        guide_content = pathlib.Path(guide_filename).read_text()
         demos_to_run += re.findall(DEMO_PATTERN, guide_content)
 
 # adding components to be embedded
@@ -51,9 +50,7 @@ failed_demos = []
 demo_port_sets = []
 for demo_name in demos_to_run:
     print(f" ----- {demo_name} ----- ")
-    if demo_name.endswith(COMPONENT_SUFFIX):
-        demo_port_sets.append((demo_name, port))
-    else:
+    if not demo_name.endswith(COMPONENT_SUFFIX):
         demo_folder = os.path.join(GRADIO_DEMO_DIR, demo_name)
         requirements_file = os.path.join(demo_folder, "requirements.txt")
         if os.path.exists(requirements_file):
@@ -71,7 +68,7 @@ for demo_name in demos_to_run:
             except subprocess.CalledProcessError:
                 failed_demos.append(demo_name)
                 continue
-        demo_port_sets.append((demo_name, port))
+    demo_port_sets.append((demo_name, port))
     port += 1
 
 with open("nginx_template.conf") as nginx_template_conf:

@@ -94,7 +94,7 @@ demo = gr.Interface(
         gr.Slider(maximum=20, step=0.04, label="Slider: step @ 0.04"),
         gr.Checkbox(label="Checkbox"),
         gr.CheckboxGroup(
-            label="CheckboxGroup", choices=CHOICES, value=CHOICES[0:2]
+            label="CheckboxGroup", choices=CHOICES, value=CHOICES[:2]
         ),
         gr.Radio(label="Radio", choices=CHOICES, value=CHOICES[2]),
         gr.Dropdown(label="Dropdown", choices=CHOICES),
@@ -107,7 +107,9 @@ demo = gr.Interface(
         gr.Audio(label="Microphone", source="microphone"),
         gr.File(label="File"),
         gr.Dataframe(label="Dataframe", headers=["Name", "Age", "Gender"]),
-        gr.Timeseries(x="time", y=["price", "value"], colors=["pink", "purple"]),
+        gr.Timeseries(
+            x="time", y=["price", "value"], colors=["pink", "purple"]
+        ),
     ],
     outputs=[
         gr.Textbox(label="Textbox"),
@@ -116,7 +118,8 @@ demo = gr.Interface(
         gr.Image(label="Image"),
         gr.Video(label="Video"),
         gr.HighlightedText(
-            label="HighlightedText", color_map={"punc": "pink", "test 0": "blue"}
+            label="HighlightedText",
+            color_map={"punc": "pink", "test 0": "blue"},
         ),
         gr.HighlightedText(label="HighlightedText", show_legend=True),
         gr.JSON(label="JSON"),
@@ -156,6 +159,7 @@ demo = gr.Interface(
     description="Try out all the components!",
     article="Learn more about [Gradio](http://gradio.app)",
 )
+
 
 if __name__ == "__main__":
     demo.launch()

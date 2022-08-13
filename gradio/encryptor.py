@@ -5,8 +5,7 @@ from Crypto.Hash import SHA256
 
 def get_key(password: str) -> bytes:
     """Generates an encryption key based on the password provided."""
-    key = SHA256.new(password.encode()).digest()
-    return key
+    return SHA256.new(password.encode()).digest()
 
 
 def encrypt(key: bytes, source: bytes) -> bytes:
@@ -15,8 +14,7 @@ def encrypt(key: bytes, source: bytes) -> bytes:
     encryptor = AES.new(key, AES.MODE_CBC, IV)
     padding = AES.block_size - len(source) % AES.block_size  # calculate needed padding
     source += bytes([padding]) * padding  # Python 2.x: source += chr(padding) * padding
-    data = IV + encryptor.encrypt(source)  # store the IV at the beginning and encrypt
-    return data
+    return IV + encryptor.encrypt(source)
 
 
 def decrypt(key: bytes, source: bytes) -> bytes:

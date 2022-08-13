@@ -2,7 +2,7 @@ import gradio as gr
 import os
 
 def combine(a, b):
-    return a + " " + b
+    return f"{a} {b}"
 
 def mirror(x):
     return x

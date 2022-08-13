@@ -20,8 +20,7 @@ def change_color(icon, color):
     _, _, _, alpha = image_np.T
     mask = alpha > 0
     image_np[..., :-1][mask.T] = ImageColor.getcolor(color, "RGB")
-    edited_image = Image.fromarray(image_np)
-    return edited_image
+    return Image.fromarray(image_np)
 
 
 inputs = [

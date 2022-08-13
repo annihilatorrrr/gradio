@@ -34,11 +34,11 @@ def load_blocks_from_repo(name, src=None, api_key=None, alias=None, **kwargs):
         ), "Either `src` parameter must be provided, or `name` must be formatted as {src}/{repo name}"
         src = tokens[0]
         name = "/".join(tokens[1:])
-    assert src.lower() in factory_methods, "parameter: src must be one of {}".format(
-        factory_methods.keys()
-    )
-    blocks: gradio.Blocks = factory_methods[src](name, api_key, alias, **kwargs)
-    return blocks
+    assert (
+        src.lower() in factory_methods
+    ), f"parameter: src must be one of {factory_methods.keys()}"
+
+    return factory_methods[src](name, api_key, alias, **kwargs)
 
 
 def get_models_interface(model_name, api_key, alias, **kwargs):
@@ -46,11 +46,7 @@ def get_models_interface(model_name, api_key, alias, **kwargs):
     api_url = "https://api-inference.huggingface.co/models/{}".format(model_name)
     print("Fetching model from: {}".format(model_url))
 
-    if api_key is not None:
-        headers = {"Authorization": f"Bearer {api_key}"}
-    else:
-        headers = {}
-
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key is not None else {}
     # Checking if model exists, and if so, it gets the pipeline
     response = requests.request("GET", api_url, headers=headers)
     assert response.status_code == 200, "Invalid model name or src"
@@ -60,25 +56,20 @@ def get_models_interface(model_name, api_key, alias, **kwargs):
         # Handles the different ways HF API returns the prediction
         base64_repr = base64.b64encode(r.content).decode("utf-8")
         data_prefix = ";base64,"
-        # Case 1: base64 representation already includes data prefix
         if data_prefix in base64_repr:
             return base64_repr
-        else:
-            content_type = r.headers.get("content-type")
+        content_type = r.headers.get("content-type")
             # Case 2: the data prefix is a key in the response
-            if content_type == "application/json":
-                try:
-                    content_type = r.json()[0]["content-type"]
-                    base64_repr = r.json()[0]["blob"]
-                except KeyError:
-                    raise ValueError(
-                        "Cannot determine content type returned" "by external API."
-                    )
-            # Case 3: the data prefix is included in the response headers
-            else:
-                pass
-            new_base64 = "data:{};base64,".format(content_type) + base64_repr
-            return new_base64
+        if content_type == "application/json":
+            try:
+                content_type = r.json()[0]["content-type"]
+                base64_repr = r.json()[0]["blob"]
+            except KeyError:
+                raise ValueError(
+                    "Cannot determine content type returned" "by external API."
+                )
+        new_base64 = "data:{};base64,".format(content_type) + base64_repr
+        return new_base64
 
     pipelines = {
         "audio-classification": {
@@ -249,7 +240,7 @@ def get_models_interface(model_name, api_key, alias, **kwargs):
         },
     }
 
-    if p is None or not (p in pipelines):
+    if p is None or p not in pipelines:
         raise ValueError("Unsupported pipeline type: {}".format(p))
 
     pipeline = pipelines[p]
@@ -263,7 +254,7 @@ def get_models_interface(model_name, api_key, alias, **kwargs):
             data.update({"options": {"wait_for_model": True}})
             data = json.dumps(data)
         response = requests.request("POST", api_url, headers=headers, data=data)
-        if not (response.status_code == 200):
+        if response.status_code != 200:
             raise ValueError(
                 "Could not complete request to HuggingFace API, Error {}".format(
                     response.status_code
@@ -278,11 +269,7 @@ def get_models_interface(model_name, api_key, alias, **kwargs):
         output = pipeline["postprocess"](response)
         return output
 
-    if alias is None:
-        query_huggingface_api.__name__ = model_name
-    else:
-        query_huggingface_api.__name__ = alias
-
+    query_huggingface_api.__name__ = model_name if alias is None else alias
     interface_info = {
         "fn": query_huggingface_api,
         "inputs": pipeline["inputs"],
@@ -297,18 +284,18 @@ def get_models_interface(model_name, api_key, alias, **kwargs):
 
 
 def get_spaces(model_name, api_key, alias, **kwargs):
-    space_url = "https://huggingface.co/spaces/{}".format(model_name)
-    print("Fetching interface from: {}".format(space_url))
-    iframe_url = "https://hf.space/embed/{}/+".format(model_name)
+    space_url = f"https://huggingface.co/spaces/{model_name}"
+    print(f"Fetching interface from: {space_url}")
+    iframe_url = f"https://hf.space/embed/{model_name}/+"
 
     r = requests.get(iframe_url)
     result = re.search(
         r"window.gradio_config = (.*?);[\s]*</script>", r.text
     )  # some basic regex to extract the config
     try:
-        config = json.loads(result.group(1))
+        config = json.loads(result[1])
     except AttributeError:
-        raise ValueError("Could not load the Space: {}".format(model_name))
+        raise ValueError(f"Could not load the Space: {model_name}")
     if "allow_flagging" in config:  # Create an Interface for Gradio 2.x Spaces
         return get_spaces_interface(model_name, config, alias, **kwargs)
     else:  # Create a Blocks for Gradio 3.x Spaces

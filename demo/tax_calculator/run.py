@@ -6,10 +6,11 @@ def tax_calculator(income, marital_status, assets):
     total_deductible = sum(assets["Cost"])
     taxable_income = income - total_deductible
 
-    total_tax = 0
-    for bracket, rate in tax_brackets:
-        if taxable_income > bracket:
-            total_tax += (taxable_income - bracket) * rate / 100
+    total_tax = sum(
+        (taxable_income - bracket) * rate / 100
+        for bracket, rate in tax_brackets
+        if taxable_income > bracket
+    )
 
     if marital_status == "Married":
         total_tax *= 0.75

@@ -109,25 +109,22 @@ class Examples:
             examples = [[e] for e in examples]
         elif isinstance(examples, str):
             if not os.path.exists(examples):
-                raise FileNotFoundError(
-                    "Could not find examples directory: " + examples
-                )
+                raise FileNotFoundError(f"Could not find examples directory: {examples}")
             working_directory = examples
-            if not os.path.exists(os.path.join(examples, LOG_FILE)):
-                if len(inputs) == 1:
-                    examples = [[e] for e in os.listdir(examples)]
-                else:
-                    raise FileNotFoundError(
-                        "Could not find log file (required for multiple inputs): "
-                        + LOG_FILE
-                    )
-            else:
+            if os.path.exists(os.path.join(examples, LOG_FILE)):
                 with open(os.path.join(examples, LOG_FILE)) as logs:
                     examples = list(csv.reader(logs))
                     examples = [
                         examples[i][: len(inputs)] for i in range(1, len(examples))
                     ]  # remove header and unnecessary columns
 
+            elif len(inputs) == 1:
+                examples = [[e] for e in os.listdir(examples)]
+            else:
+                raise FileNotFoundError(
+                    "Could not find log file (required for multiple inputs): "
+                    + LOG_FILE
+                )
         else:
             raise ValueError(
                 "The parameter `examples` must either be a string directory or a list"
@@ -138,7 +135,7 @@ class Examples:
         input_has_examples = [False] * len(inputs)
         for example in examples:
             for idx, example_for_input in enumerate(example):
-                if not (example_for_input is None):
+                if example_for_input is not None:
                     try:
                         input_has_examples[idx] = True
                     except IndexError:
@@ -243,14 +240,12 @@ class Examples:
             predictions = await anyio.to_thread.run_sync(self.fn, *processed_input)
         if len(self.outputs) == 1:
             predictions = [predictions]
-        processed_output = [
+        return [
             output_component.postprocess(predictions[i])
             if predictions[i] is not None
             else None
             for i, output_component in enumerate(self.outputs)
         ]
-
-        return processed_output
 
     async def load_from_cache(self, example_id: int) -> List[Any]:
         """Loads a particular cached example for the interface.
@@ -260,13 +255,11 @@ class Examples:
         with open(self.cached_file) as cache:
             examples = list(csv.reader(cache, quotechar="'"))
         example = examples[example_id + 1]  # +1 to adjust for header
-        output = []
-        for component, cell in zip(self.outputs, example):
-            output.append(
-                component.restore_flagged(
-                    self.cached_folder,
-                    cell,
-                    None,
-                )
+        return [
+            component.restore_flagged(
+                self.cached_folder,
+                cell,
+                None,
             )
-        return output
+            for component, cell in zip(self.outputs, example)
+        ]

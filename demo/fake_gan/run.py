@@ -9,7 +9,7 @@ import gradio as gr
 
 def fake_gan(count, *args):
     time.sleep(1)
-    images = [
+    return [
         random.choice(
             [
                 "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=387&q=80",
@@ -21,7 +21,6 @@ def fake_gan(count, *args):
         )
         for _ in range(int(count))
     ]
-    return images
 
 
 cheetah = os.path.join(os.path.dirname(__file__), "files/cheetah1.jpg")

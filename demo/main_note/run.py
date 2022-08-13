@@ -25,7 +25,7 @@ def main_note(audio):
     T = 1.0 / rate
     x = np.linspace(0.0, N * T, N)
     yf = fft(y)
-    yf2 = 2.0 / N * np.abs(yf[0 : N // 2])
+    yf2 = 2.0 / N * np.abs(yf[:N // 2])
     xf = np.linspace(0.0, 1.0 / (2.0 * T), N // 2)
 
     volume_per_pitch = {}

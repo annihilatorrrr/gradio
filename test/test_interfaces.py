@@ -55,8 +55,10 @@ class TestInterface(unittest.TestCase):
         )
         interface = Interface(lambda x: 3 * x, "number", "number", examples=path)
         dataset_check = any(
-            [c["type"] == "dataset" for c in interface.get_config_file()["components"]]
+            c["type"] == "dataset"
+            for c in interface.get_config_file()["components"]
         )
+
         self.assertTrue(dataset_check)
 
     def test_test_launch(self):
@@ -145,10 +147,10 @@ class TestInterface(unittest.TestCase):
         interface = Interface(lambda x: x, "textbox", "label")
         interface.launch(prevent_thread_lock=True)
         interface.integrate(comet_ml=experiment)
-        experiment.log_text.assert_called_with("gradio: " + interface.local_url)
+        experiment.log_text.assert_called_with(f"gradio: {interface.local_url}")
         interface.share_url = "tmp"  # used to avoid creating real share links.
         interface.integrate(comet_ml=experiment)
-        experiment.log_text.assert_called_with("gradio: " + interface.share_url)
+        experiment.log_text.assert_called_with(f"gradio: {interface.share_url}")
         self.assertEqual(experiment.log_other.call_count, 2)
         interface.share_url = None
         interface.close()

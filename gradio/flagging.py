@@ -89,23 +89,22 @@ class SimpleCSVLogger(FlaggingCallback):
         flagging_dir = self.flagging_dir
         log_filepath = os.path.join(flagging_dir, "log.csv")
 
-        csv_data = []
-        for component, sample in zip(self.components, flag_data):
-            csv_data.append(
-                component.save_flagged(
-                    flagging_dir,
-                    component.label,
-                    sample,
-                    None,
-                )
+        csv_data = [
+            component.save_flagged(
+                flagging_dir,
+                component.label,
+                sample,
+                None,
             )
+            for component, sample in zip(self.components, flag_data)
+        ]
 
         with open(log_filepath, "a", newline="") as csvfile:
             writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC, quotechar="'")
             writer.writerow(csv_data)
 
         with open(log_filepath, "r") as csvfile:
-            line_count = len([None for row in csv.reader(csvfile)]) - 1
+            line_count = len([None for _ in csv.reader(csvfile)]) - 1
         return line_count
 
 
@@ -270,7 +269,7 @@ class HuggingFaceDatasetSaver(FlaggingCallback):
         """
         try:
             import huggingface_hub
-        except (ImportError, ModuleNotFoundError):
+        except ImportError:
             raise ImportError(
                 "Package `huggingface_hub` not found is needed "
                 "for HuggingFaceDatasetSaver. Try 'pip install huggingface_hub'."
@@ -325,19 +324,16 @@ class HuggingFaceDatasetSaver(FlaggingCallback):
                 headers = []
 
                 for component, sample in zip(self.components, flag_data):
-                    headers.append(component.label)
-                    headers.append(component.label)
+                    headers.extend((component.label, component.label))
                     infos["flagged"]["features"][component.label] = {
                         "dtype": "string",
                         "_type": "Value",
                     }
                     if isinstance(component, tuple(file_preview_types)):
-                        headers.append(component.label + " file")
+                        headers.append(f"{component.label} file")
                         for _component, _type in file_preview_types.items():
                             if isinstance(component, _component):
-                                infos["flagged"]["features"][
-                                    component.label + " file"
-                                ] = {"_type": _type}
+                                infos["flagged"]["features"][f"{component.label} file"] = {"_type": _type}
                                 break
 
                 headers.append("flag")
@@ -356,9 +352,7 @@ class HuggingFaceDatasetSaver(FlaggingCallback):
                 )
                 csv_data.append(filepath)
                 if isinstance(component, tuple(file_preview_types)):
-                    csv_data.append(
-                        "{}/resolve/main/{}".format(self.path_to_dataset_repo, filepath)
-                    )
+                    csv_data.append(f"{self.path_to_dataset_repo}/resolve/main/{filepath}")
             csv_data.append(flag_option if flag_option is not None else "")
             writer.writerow(csv_data)
 
@@ -366,8 +360,8 @@ class HuggingFaceDatasetSaver(FlaggingCallback):
             json.dump(infos, open(self.infos_file, "w"))
 
         with open(self.log_file, "r", encoding="utf-8") as csvfile:
-            line_count = len([None for row in csv.reader(csvfile)]) - 1
+            line_count = len([None for _ in csv.reader(csvfile)]) - 1
 
-        self.repo.push_to_hub(commit_message="Flagged sample #{}".format(line_count))
+        self.repo.push_to_hub(commit_message=f"Flagged sample #{line_count}")
 
         return line_count

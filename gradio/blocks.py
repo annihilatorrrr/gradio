@@ -140,7 +140,7 @@ class Block:
             outputs = [outputs]
         Context.root_block.fns.append(BlockFunction(fn, preprocess, postprocess))
         dependency = {
-            "targets": [self._id] if not no_target else [],
+            "targets": [] if no_target else [self._id],
             "trigger": event_name,
             "inputs": [block._id for block in inputs],
             "outputs": [block._id for block in outputs],
@@ -154,6 +154,7 @@ class Block:
             "scroll_to_output": scroll_to_output,
             "show_progress": show_progress,
         }
+
         if api_name is not None:
             dependency["documentation"] = [
                 [
@@ -356,7 +357,7 @@ class Blocks(BlockContext):
         self.height = None
 
         self.ip_address = utils.get_local_ip_address()
-        self.is_space = True if os.getenv("SYSTEM") == "spaces" else False
+        self.is_space = os.getenv("SYSTEM") == "spaces"
         self.favicon_path = None
         self.auth = None
         self.dev_mode = True
@@ -370,10 +371,7 @@ class Blocks(BlockContext):
     @share.setter
     def share(self, value: Optional[bool]):
         # If share is not provided, it is set to True when running in Google Colab, or False otherwise
-        if value is None:
-            self._share = True if utils.colab_check() else False
-        else:
-            self._share = value
+        self._share = bool(utils.colab_check()) if value is None else value
 
     @classmethod
     def from_config(cls, config: dict, fns: List[Callable]) -> Blocks:
@@ -463,9 +461,8 @@ class Blocks(BlockContext):
                         "Cannot call Blocks object as a function if any of"
                         " the inputs are stateful."
                     )
-                else:
-                    serialized_input = block.serialize(params[i], True)
-                    serialized_params.append(serialized_input)
+                serialized_input = block.serialize(params[i], True)
+                serialized_params.append(serialized_input)
         else:
             serialized_params = params
 
@@ -488,9 +485,8 @@ class Blocks(BlockContext):
                         "Cannot call Blocks object as a function if any of"
                         " the outputs are stateful."
                     )
-                else:
-                    deserialized = block.deserialize(output_copy[o])
-                    deserialized_output.append(deserialized)
+                deserialized = block.deserialize(output_copy[o])
+                deserialized_output.append(deserialized)
         else:
             deserialized_output = output
 
@@ -511,11 +507,11 @@ class Blocks(BlockContext):
                 repr += "\n inputs:"
                 for input_id in dependency["inputs"]:
                     block = self.blocks[input_id]
-                    repr += "\n |-{}".format(str(block))
+                    repr += f"\n |-{str(block)}"
                 repr += "\n outputs:"
                 for output_id in dependency["outputs"]:
                     block = self.blocks[output_id]
-                    repr += "\n |-{}".format(str(block))
+                    repr += f"\n |-{str(block)}"
         return repr
 
     def render(self):
@@ -710,18 +706,7 @@ class Blocks(BlockContext):
         self.app = routes.App.create_app(self)
 
     @class_or_instancemethod
-    def load(
-        self_or_cls,
-        fn: Optional[Callable] = None,
-        inputs: Optional[List[Component]] = None,
-        outputs: Optional[List[Component]] = None,
-        *,
-        name: Optional[str] = None,
-        src: Optional[str] = None,
-        api_key: Optional[str] = None,
-        alias: Optional[str] = None,
-        **kwargs,
-    ) -> Blocks | None:
+    def load(self, fn: Optional[Callable] = None, inputs: Optional[List[Component]] = None, outputs: Optional[List[Component]] = None, *, name: Optional[str] = None, src: Optional[str] = None, api_key: Optional[str] = None, alias: Optional[str] = None, **kwargs) -> Blocks | None:
         """
         For reverse compatibility reasons, this is both a class method and an instance
         method, the two of which, confusingly, do two completely different things.
@@ -740,7 +725,7 @@ class Blocks(BlockContext):
             inputs: Instance Method - input list
             outputs: Instance Method - output list
         """
-        if isinstance(self_or_cls, type):
+        if isinstance(self, type):
             if name is None:
                 raise ValueError(
                     "Blocks.load() requires passing `name` as a keyword argument"
@@ -753,8 +738,12 @@ class Blocks(BlockContext):
                 kwargs["outputs"] = outputs
             return external.load_blocks_from_repo(name, src, api_key, alias, **kwargs)
         else:
-            self_or_cls.set_event_trigger(
-                event_name="load", fn=fn, inputs=inputs, outputs=outputs, no_target=True
+            self.set_event_trigger(
+                event_name="load",
+                fn=fn,
+                inputs=inputs,
+                outputs=outputs,
+                no_target=True,
             )
 
     def clear(self):
@@ -996,11 +985,10 @@ class Blocks(BlockContext):
             analytics_integration = "CometML"
             comet_ml.log_other("Created from", "Gradio")
             if self.share_url is not None:
-                comet_ml.log_text("gradio: " + self.share_url)
-                comet_ml.end()
+                comet_ml.log_text(f"gradio: {self.share_url}")
             else:
-                comet_ml.log_text("gradio: " + self.local_url)
-                comet_ml.end()
+                comet_ml.log_text(f"gradio: {self.local_url}")
+            comet_ml.end()
         if wandb is not None:
             analytics_integration = "WandB"
             if self.share_url is not None:
@@ -1040,7 +1028,7 @@ class Blocks(BlockContext):
             self.server.close()
             self.is_running = False
             if verbose:
-                print("Closing server running on port: {}".format(self.server_port))
+                print(f"Closing server running on port: {self.server_port}")
         except (AttributeError, OSError):  # can't close if not running
             pass
 

@@ -39,7 +39,7 @@ def check_deprecated_parameters(cls: str, **kwargs) -> None:
             # Interestingly, using DeprecationWarning causes warning to not appear.
             warnings.warn(value)
 
-    if len(kwargs) != 0:
+    if kwargs:
         warnings.warn(
             f"You have unused kwarg parameters in {cls}, please remove them: {kwargs}"
         )

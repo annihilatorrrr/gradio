@@ -2,7 +2,7 @@ import gradio as gr
 
 
 def print_message(n):
-    return "Welcome! This page has loaded for " + n
+    return f"Welcome! This page has loaded for {n}"
 
 
 with gr.Blocks() as demo:

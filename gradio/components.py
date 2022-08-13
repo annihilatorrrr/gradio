@@ -173,18 +173,17 @@ class IOComponent(Component):
         """
         Loads flagged data from file and returns it
         """
-        if as_data:
-            data = processing_utils.encode_file_to_base64(
-                os.path.join(dir, file), encryption_key=encryption_key
-            )
-            return {"name": file, "data": data}
-        else:
+        if not as_data:
             return {
                 "name": os.path.join(dir, file),
                 "data": os.path.join(dir, file),
                 "file_name": file,
                 "is_example": True,
             }
+        data = processing_utils.encode_file_to_base64(
+            os.path.join(dir, file), encryption_key=encryption_key
+        )
+        return {"name": file, "data": data}
 
     def preprocess(self, x: Any) -> Any:
         """
@@ -392,10 +391,7 @@ class Textbox(Changeable, Submittable, IOComponent):
         Returns:
             text
         """
-        if x is None:
-            return None
-        else:
-            return str(x)
+        return None if x is None else str(x)
 
     def serialize(self, x: Any, called_directly: bool) -> Any:
         """
@@ -410,10 +406,7 @@ class Textbox(Changeable, Submittable, IOComponent):
         """
         Any preprocessing needed to be performed on an example before being passed to the main function.
         """
-        if x is None:
-            return None
-        else:
-            return str(x)
+        return None if x is None else str(x)
 
     def set_interpret_parameters(
         self, separator: str = " ", replacement: Optional[str] = None
@@ -466,8 +459,7 @@ class Textbox(Changeable, Submittable, IOComponent):
         """
         result = []
         for token, score in zip(tokens, scores):
-            result.append((token, score))
-            result.append((self.interpretation_separator, 0))
+            result.extend(((token, score), (self.interpretation_separator, 0)))
         return result
 
     def generate_sample(self) -> str:
@@ -481,10 +473,7 @@ class Textbox(Changeable, Submittable, IOComponent):
         Returns:
             text
         """
-        if y is None:
-            return None
-        else:
-            return str(y)
+        return None if y is None else str(y)
 
     def deserialize(self, x):
         """
@@ -596,19 +585,14 @@ class Number(Changeable, Submittable, IOComponent):
         Returns:
             number representing function input
         """
-        if x is None:
-            return None
-        return self.round_to_precision(x, self.precision)
+        return None if x is None else self.round_to_precision(x, self.precision)
 
     def preprocess_example(self, x: float | None) -> float | None:
         """
         Returns:
             Number representing function input
         """
-        if x is None:
-            return None
-        else:
-            return self.round_to_precision(x, self.precision)
+        return None if x is None else self.round_to_precision(x, self.precision)
 
     def set_interpret_parameters(
         self, steps: int = 3, delta: float = 1, delta_type: str = "percent"
@@ -629,8 +613,6 @@ class Number(Changeable, Submittable, IOComponent):
         x = self.round_to_precision(x, self.precision)
         if self.interpretation_delta_type == "percent":
             delta = 1.0 * self.interpretation_delta * x / 100
-        elif self.interpretation_delta_type == "absolute":
-            delta = self.interpretation_delta
         else:
             delta = self.interpretation_delta
         if self.precision == 0 and math.floor(delta) != delta:
@@ -652,7 +634,7 @@ class Number(Changeable, Submittable, IOComponent):
             Each tuple set represents a numeric value near the input and its corresponding interpretation score.
         """
         interpretation = list(zip(neighbors, scores))
-        interpretation.insert(int(len(interpretation) / 2), [x, None])
+        interpretation.insert(len(interpretation) // 2, [x, None])
         return interpretation
 
     def generate_sample(self) -> float:
@@ -667,10 +649,7 @@ class Number(Changeable, Submittable, IOComponent):
         Returns:
             number representing function output
         """
-        if y is None:
-            return None
-        else:
-            return self.round_to_precision(y, self.precision)
+        return None if y is None else self.round_to_precision(y, self.precision)
 
     def deserialize(self, y):
         """
@@ -763,11 +742,7 @@ class Slider(Changeable, IOComponent):
         step = random.randint(0, n_steps)
         value = self.minimum + step * self.step
 
-        # Round to the number of decimals in the step
-        # So that UI doesn't display really long decimals due to arithmetic
-        # If the step doesn't have any decimals, find will return -1
-        n_decimals = max(str(self.step)[::-1].find("."), 0)
-        if n_decimals:
+        if n_decimals := max(str(self.step)[::-1].find("."), 0):
             value = round(value, n_decimals)
 
         return value
@@ -970,10 +945,7 @@ class Checkbox(Changeable, IOComponent):
         Returns:
             The first value represents the interpretation score if the input is False, and the second if the input is True.
         """
-        if x:
-            return scores[0], None
-        else:
-            return None, scores[0]
+        return (scores[0], None) if x else (None, scores[0])
 
     def generate_sample(self):
         return True
@@ -1116,10 +1088,7 @@ class CheckboxGroup(Changeable, IOComponent):
         """
         final_scores = []
         for choice, score in zip(self.choices, scores):
-            if choice in x:
-                score_set = [score, None]
-            else:
-                score_set = [None, score]
+            score_set = [score, None] if choice in x else [None, score]
             final_scores.append(score_set)
         return final_scores
 
@@ -1264,10 +1233,7 @@ class Radio(Changeable, IOComponent):
         if self.type == "value":
             return x
         elif self.type == "index":
-            if x is None:
-                return None
-            else:
-                return self.choices.index(x)
+            return None if x is None else self.choices.index(x)
         else:
             raise ValueError(
                 "Unknown type: "
@@ -1452,7 +1418,6 @@ class Image(Editable, Clearable, Changeable, Streamable, IOComponent):
         self.shape = shape
         self.image_mode = image_mode
         self.source = source
-        requires_permissions = source == "webcam"
         self.tool = tool
         self.invert_colors = invert_colors
         self.test_input = deepcopy(media_data.BASE64_IMAGE)
@@ -1461,6 +1426,7 @@ class Image(Editable, Clearable, Changeable, Streamable, IOComponent):
         if streaming and source != "webcam":
             raise ValueError("Image streaming only available if source is 'webcam'.")
 
+        requires_permissions = source == "webcam"
         IOComponent.__init__(
             self,
             label=label,
@@ -1513,19 +1479,19 @@ class Image(Editable, Clearable, Changeable, Streamable, IOComponent):
             return im
         elif self.type == "numpy":
             return np.array(im)
-        elif self.type == "file" or self.type == "filepath":
+        elif self.type in ["file", "filepath"]:
             file_obj = tempfile.NamedTemporaryFile(
                 delete=False,
-                suffix=("." + fmt.lower() if fmt is not None else ".png"),
+                suffix=f".{fmt.lower()}" if fmt is not None else ".png",
             )
+
             im.save(file_obj.name)
-            if self.type == "file":
-                warnings.warn(
-                    "The 'file' type has been deprecated. Set parameter 'type' to 'filepath' instead.",
-                )
-                return file_obj
-            else:
+            if self.type != "file":
                 return file_obj.name
+            warnings.warn(
+                "The 'file' type has been deprecated. Set parameter 'type' to 'filepath' instead.",
+            )
+            return file_obj
         else:
             raise ValueError(
                 "Unknown type: "
@@ -1557,7 +1523,7 @@ class Image(Editable, Clearable, Changeable, Streamable, IOComponent):
         if self.source == "webcam" and self.mirror_webcam is True:
             im = PIL.ImageOps.mirror(im)
 
-        if not (self.tool == "sketch"):
+        if self.tool != "sketch":
             return self.format_image(im, fmt)
 
         mask_im = processing_utils.decode_base64_to_image(mask)
@@ -1568,9 +1534,7 @@ class Image(Editable, Clearable, Changeable, Streamable, IOComponent):
         }
 
     def preprocess_example(self, x):
-        if x is None:
-            return None
-        return processing_utils.encode_file_to_base64(x)
+        return None if x is None else processing_utils.encode_file_to_base64(x)
 
     def serialize(self, x, called_directly=False):
         # if called directly, can assume it's a URL or filepath
@@ -1616,7 +1580,7 @@ class Image(Editable, Clearable, Changeable, Streamable, IOComponent):
         resized_and_cropped_image = np.array(x)
         try:
             from skimage.segmentation import slic
-        except (ImportError, ModuleNotFoundError):
+        except ImportError:
             raise ValueError(
                 "Error: running this interpretation for images requires scikit-image, please install it first."
             )
@@ -1650,7 +1614,7 @@ class Image(Editable, Clearable, Changeable, Streamable, IOComponent):
         segments_slic, resized_and_cropped_image = self._segment_by_slic(x)
         tokens, masks, leave_one_out_tokens = [], [], []
         replace_color = np.mean(resized_and_cropped_image, axis=(0, 1))
-        for (i, segment_value) in enumerate(np.unique(segments_slic)):
+        for segment_value in np.unique(segments_slic):
             mask = segments_slic == segment_value
             image_screen = np.copy(resized_and_cropped_image)
             image_screen[segments_slic == segment_value] = replace_color
@@ -1857,9 +1821,7 @@ class Video(Changeable, Clearable, Playable, IOComponent):
         return IOComponent.add_interactive_to_config(updated_config, interactive)
 
     def preprocess_example(self, x):
-        if x is None:
-            return None
-        return {"name": x, "data": None, "is_example": True}
+        return None if x is None else {"name": x, "data": None, "is_example": True}
 
     def preprocess(self, x: Dict[str, str] | None) -> str | None:
         """
@@ -1885,7 +1847,7 @@ class Video(Changeable, Clearable, Playable, IOComponent):
         uploaded_format = file_name.split(".")[-1].lower()
 
         if self.format is not None and uploaded_format != self.format:
-            output_file_name = file_name[0 : file_name.rindex(".") + 1] + self.format
+            output_file_name = file_name[:file_name.rindex(".") + 1] + self.format
             ff = FFmpeg(inputs={file_name: None}, outputs={output_file_name: None})
             ff.run()
             return output_file_name
@@ -1930,7 +1892,7 @@ class Video(Changeable, Clearable, Playable, IOComponent):
             return None
         returned_format = y.split(".")[-1].lower()
         if self.format is not None and returned_format != self.format:
-            output_file_name = y[0 : y.rindex(".") + 1] + self.format
+            output_file_name = y[:y.rindex(".") + 1] + self.format
             ff = FFmpeg(inputs={y: None}, outputs={output_file_name: None})
             ff.run()
             y = output_file_name
@@ -2004,7 +1966,6 @@ class Audio(Changeable, Clearable, Playable, Streamable, IOComponent):
         load_fn, initial_value = self.get_load_fn_and_initial_value(value)
         self.value = self.postprocess(initial_value)
         self.source = source
-        requires_permissions = source == "microphone"
         self.type = type
         self.test_input = deepcopy(media_data.BASE64_AUDIO)
         self.interpret_by_tokens = True
@@ -2013,6 +1974,7 @@ class Audio(Changeable, Clearable, Playable, Streamable, IOComponent):
             raise ValueError(
                 "Audio streaming only available if source is 'microphone'."
             )
+        requires_permissions = source == "microphone"
         IOComponent.__init__(
             self,
             label=label,
@@ -2054,9 +2016,7 @@ class Audio(Changeable, Clearable, Playable, Streamable, IOComponent):
         return IOComponent.add_interactive_to_config(updated_config, interactive)
 
     def preprocess_example(self, x):
-        if x is None:
-            return None
-        return {"name": x, "data": None, "is_example": True}
+        return None if x is None else {"name": x, "data": None, "is_example": True}
 
     def preprocess(self, x: Dict[str, str] | None) -> Tuple[int, np.array] | str | None:
         """
@@ -2086,13 +2046,12 @@ class Audio(Changeable, Clearable, Playable, Streamable, IOComponent):
             return sample_rate, data
         elif self.type in ["file", "filepath"]:
             processing_utils.audio_to_file(sample_rate, data, file_obj.name)
-            if self.type == "file":
-                warnings.warn(
-                    "The 'file' type has been deprecated. Set parameter 'type' to 'filepath' instead.",
-                )
-                return file_obj
-            else:
+            if self.type != "file":
                 return file_obj.name
+            warnings.warn(
+                "The 'file' type has been deprecated. Set parameter 'type' to 'filepath' instead.",
+            )
+            return file_obj
         else:
             raise ValueError(
                 "Unknown type: "
@@ -2161,7 +2120,7 @@ class Audio(Changeable, Clearable, Playable, Streamable, IOComponent):
 
             # Handle the tokens
             token = np.copy(data)
-            token[0:start] = 0
+            token[:start] = 0
             token[stop:] = 0
             file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
             processing_utils.audio_to_file(sample_rate, token, file.name)
@@ -2221,8 +2180,7 @@ class Audio(Changeable, Clearable, Playable, Streamable, IOComponent):
             data_string = data
         else:
             data_string = data["data"]
-            is_example = data.get("is_example", False)
-            if is_example:
+            if is_example := data.get("is_example", False):
                 file_obj = processing_utils.create_tmp_copy_of_file(data["name"])
                 return self.save_file(file_obj, dir, label)
         return self.save_flagged_file(dir, label, data_string, encryption_key)
@@ -2424,15 +2382,16 @@ class File(Changeable, Clearable, IOComponent):
                 )
 
         if self.file_count == "single":
-            if isinstance(x, list):
-                return process_single_file(x[0])
-            else:
-                return process_single_file(x)
+            return (
+                process_single_file(x[0])
+                if isinstance(x, list)
+                else process_single_file(x)
+            )
+
+        if isinstance(x, list):
+            return [process_single_file(f) for f in x]
         else:
-            if isinstance(x, list):
-                return [process_single_file(f) for f in x]
-            else:
-                return process_single_file(x)
+            return process_single_file(x)
 
     def save_flagged(self, dir, label, data, encryption_key):
         """
@@ -2726,10 +2685,7 @@ class Dataframe(Changeable, IOComponent):
     def __process_counts(count, default=3):
         if count is None:
             return (default, "dynamic")
-        if type(count) == int or type(count) == float:
-            return (int(count), "dynamic")
-        else:
-            return count
+        return (int(count), "dynamic") if type(count) in [int, float] else count
 
     @staticmethod
     def __validate_headers(headers: List[str] | None, col_count: int):
@@ -2748,10 +2704,10 @@ class Dataframe(Changeable, IOComponent):
         if cls.markdown_parser is None:
             cls.markdown_parser = MarkdownIt()
 
-        for i in range(len(data)):
-            for j in range(len(data[i])):
+        for datum in data:
+            for j in range(len(datum)):
                 if datatype[j] == "markdown":
-                    data[i][j] = Dataframe.markdown_parser.render(data[i][j])
+                    datum[j] = Dataframe.markdown_parser.render(datum[j])
 
         return data
 
@@ -2854,9 +2810,7 @@ class Timeseries(Changeable, IOComponent):
         return IOComponent.add_interactive_to_config(updated_config, interactive)
 
     def preprocess_example(self, x):
-        if x is None:
-            return None
-        return {"name": x, "is_example": True}
+        return None if x is None else {"name": x, "is_example": True}
 
     def preprocess(self, x: Dict | None) -> pd.DataFrame | None:
         """
@@ -3106,19 +3060,13 @@ class ColorPicker(Changeable, Submittable, IOComponent):
         Returns:
             text
         """
-        if x is None:
-            return None
-        else:
-            return str(x)
+        return None if x is None else str(x)
 
     def preprocess_example(self, x: str | None) -> Any:
         """
         Any preprocessing needed to be performed on an example before being passed to the main function.
         """
-        if x is None:
-            return None
-        else:
-            return str(x)
+        return None if x is None else str(x)
 
     def generate_sample(self) -> str:
         return "#000000"
@@ -3131,10 +3079,7 @@ class ColorPicker(Changeable, Submittable, IOComponent):
         Returns:
             text
         """
-        if y is None:
-            return None
-        else:
-            return str(y)
+        return None if y is None else str(y)
 
     def deserialize(self, x):
         """
@@ -3223,22 +3168,17 @@ class Label(Changeable, IOComponent):
                 ],
             }
         raise ValueError(
-            "The `Label` output interface expects one of: a string label, or an int label, a "
-            "float label, or a dictionary whose keys are labels and values are confidences. "
-            "Instead, got a {}".format(type(y))
+            f"The `Label` output interface expects one of: a string label, or an int label, a float label, or a dictionary whose keys are labels and values are confidences. Instead, got a {type(y)}"
         )
 
     def deserialize(self, y):
         if y is None:
             return None
         # 5 cases: (1): {'label': 'lion'}, {'label': 'lion', 'confidences':...}, {'lion': 0.46, ...}, 'lion', '0.46'
-        if isinstance(y, (str, numbers.Number)) or (
-            "label" in y and not ("confidences" in y.keys())
-        ):
-            if isinstance(y, (str, numbers.Number)):
-                return y
-            else:
-                return y["label"]
+        if isinstance(y, (str, numbers.Number)):
+            return y
+        elif "label" in y and "confidences" not in y.keys():
+            return y if isinstance(y, (str, numbers.Number)) else y["label"]
         if ("confidences" in y.keys()) and isinstance(y["confidences"], list):
             return {k["label"]: k["confidence"] for k in y["confidences"]}
         else:
@@ -3273,14 +3213,13 @@ class Label(Changeable, IOComponent):
         show_label: Optional[bool] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "label": label,
             "show_label": show_label,
             "visible": visible,
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def style(
         self,
@@ -3367,7 +3306,7 @@ class HighlightedText(Changeable, IOComponent):
         show_label: Optional[bool] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "color_map": color_map,
             "show_legend": show_legend,
             "label": label,
@@ -3376,7 +3315,6 @@ class HighlightedText(Changeable, IOComponent):
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def postprocess(
         self, y: Optional[List[Tuple[str, str | float | None]] | Dict]
@@ -3398,31 +3336,36 @@ class HighlightedText(Changeable, IOComponent):
                 list_format = []
                 index = 0
                 for entity in entities:
-                    list_format.append((text[index : entity["start"]], None))
-                    list_format.append(
-                        (text[entity["start"] : entity["end"]], entity["entity"])
+                    list_format.extend(
+                        (
+                            (text[index : entity["start"]], None),
+                            (
+                                text[entity["start"] : entity["end"]],
+                                entity["entity"],
+                            ),
+                        )
                     )
+
                     index = entity["end"]
                 list_format.append((text[index:], None))
                 y = list_format
-        if self.combine_adjacent:
-            output = []
-            running_text, running_category = None, None
-            for text, category in y:
-                if running_text is None:
-                    running_text = text
-                    running_category = category
-                elif category == running_category:
-                    running_text += self.adjacent_separator + text
-                else:
-                    output.append((running_text, running_category))
-                    running_text = text
-                    running_category = category
-            if running_text is not None:
-                output.append((running_text, running_category))
-            return output
-        else:
+        if not self.combine_adjacent:
             return y
+        output = []
+        running_text, running_category = None, None
+        for text, category in y:
+            if running_text is None:
+                running_text = text
+                running_category = category
+            elif category == running_category:
+                running_text += self.adjacent_separator + text
+            else:
+                output.append((running_text, running_category))
+                running_text = text
+                running_category = category
+        if running_text is not None:
+            output.append((running_text, running_category))
+        return output
 
     def save_flagged(self, dir, label, data, encryption_key):
         return json.dumps(data)
@@ -3503,14 +3446,13 @@ class JSON(Changeable, IOComponent):
         visible: Optional[bool] = None,
         interactive: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "label": label,
             "show_label": show_label,
             "visible": visible,
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def postprocess(self, y: Dict | List | str | None) -> Dict | List | None:
         """
@@ -3519,10 +3461,7 @@ class JSON(Changeable, IOComponent):
         Returns:
             JSON output
         """
-        if isinstance(y, str):
-            return json.dumps(y)
-        else:
-            return y
+        return json.dumps(y) if isinstance(y, str) else y
 
     def save_flagged(self, dir, label, data, encryption_key):
         return json.dumps(data)
@@ -3593,14 +3532,13 @@ class HTML(Changeable, IOComponent):
         show_label: Optional[bool] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "label": label,
             "show_label": show_label,
             "visible": visible,
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def style(self):
         return self
@@ -3652,14 +3590,13 @@ class Gallery(IOComponent):
         show_label: Optional[bool] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "label": label,
             "show_label": show_label,
             "visible": visible,
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def get_config(self):
         return {
@@ -3801,14 +3738,13 @@ class Carousel(IOComponent, Changeable):
         show_label: Optional[bool] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "label": label,
             "show_label": show_label,
             "visible": visible,
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def postprocess(self, y: List[List[Any]]) -> List[List[Any]]:
         """
@@ -3817,18 +3753,18 @@ class Carousel(IOComponent, Changeable):
         Returns:
             2D array, where each sublist represents one set of outputs or 'slide' in the carousel
         """
-        if isinstance(y, list):
-            if len(y) != 0 and not isinstance(y[0], list):
-                y = [[z] for z in y]
-            output = []
-            for row in y:
-                output_row = []
-                for i, cell in enumerate(row):
-                    output_row.append(self.components[i].postprocess(cell))
-                output.append(output_row)
-            return output
-        else:
+        if not isinstance(y, list):
             raise ValueError("Unknown type. Please provide a list for the Carousel.")
+        if y and not isinstance(y[0], list):
+            y = [[z] for z in y]
+        output = []
+        for row in y:
+            output_row = [
+                self.components[i].postprocess(cell) for i, cell in enumerate(row)
+            ]
+
+            output.append(output_row)
+        return output
 
     def save_flagged(self, dir, label, data, encryption_key):
         return json.dumps(
@@ -3915,7 +3851,7 @@ class Chatbot(Changeable, IOComponent):
         show_label: Optional[bool] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "color_map": color_map,
             "label": label,
             "show_label": show_label,
@@ -3923,7 +3859,6 @@ class Chatbot(Changeable, IOComponent):
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def postprocess(self, y: List[Tuple[str, str]]) -> List[Tuple[str, str]]:
         """
@@ -4014,19 +3949,16 @@ class Model3D(Changeable, Editable, Clearable, IOComponent):
         show_label: Optional[bool] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "label": label,
             "show_label": show_label,
             "visible": visible,
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def preprocess_example(self, x):
-        if x is None:
-            return None
-        return {"name": x, "data": None, "is_example": True}
+        return None if x is None else {"name": x, "data": None, "is_example": True}
 
     def preprocess(self, x: Dict[str, str] | None) -> str | None:
         """
@@ -4074,11 +4006,10 @@ class Model3D(Changeable, Editable, Clearable, IOComponent):
         """
         if y is None:
             return y
-        data = {
+        return {
             "name": os.path.basename(y),
             "data": processing_utils.encode_file_to_base64(y),
         }
-        return data
 
     def deserialize(self, x):
         file = processing_utils.decode_base64_to_file(x["data"], file_path=x["name"])
@@ -4152,14 +4083,13 @@ class Plot(Changeable, Clearable, IOComponent):
         show_label: Optional[bool] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "label": label,
             "show_label": show_label,
             "visible": visible,
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def postprocess(self, y: str | None) -> Dict[str, str] | None:
         """
@@ -4249,12 +4179,11 @@ class Markdown(IOComponent, Changeable):
         value: Optional[Any] = None,
         visible: Optional[bool] = None,
     ):
-        updated_config = {
+        return {
             "visible": visible,
             "value": value,
             "__type__": "update",
         }
-        return updated_config
 
     def style(self):
         return self
@@ -4299,7 +4228,7 @@ class Dataset(Clickable, Component):
         self.type = type
         if headers is not None:
             self.headers = headers
-        elif all([c.label is None for c in self.components]):
+        elif all(c.label is None for c in self.components):
             self.headers = []
         else:
             self.headers = [c.label or "" for c in self.components]
@@ -4442,8 +4371,7 @@ class StatusTracker(Component):
 
 
 def component(cls_name: str) -> Component:
-    obj = component_or_layout_class(cls_name)()
-    return obj
+    return component_or_layout_class(cls_name)()
 
 
 def get_component_instance(comp: str | dict | Component, render=True) -> Component:

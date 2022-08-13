@@ -17,11 +17,7 @@ def run_in_reload_mode():
     args = sys.argv[1:]
     if len(args) == 0:
         raise ValueError("No file specified.")
-    if len(args) == 1:
-        demo_name = "demo"
-    else:
-        demo_name = args[1]
-
+    demo_name = "demo" if len(args) == 1 else args[1]
     original_path = args[0]
     abs_original_path = os.path.abspath(original_path)
     path = os.path.normpath(original_path)

@@ -9,7 +9,7 @@ def RGB_to_Hex(rgb):
     color = "#"
     for i in rgb:
         num = int(i)
-        color += str(hex(num))[-2:].replace("x", "0").upper()
+        color += hex(num)[-2:].replace("x", "0").upper()
     return color
 
 

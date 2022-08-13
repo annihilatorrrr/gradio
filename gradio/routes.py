@@ -87,10 +87,12 @@ class App(FastAPI):
     def configure_app(self, blocks: gradio.Blocks) -> None:
         auth = blocks.auth
         if auth is not None:
-            if not callable(auth):
-                self.auth = {account[0]: account[1] for account in auth}
-            else:
-                self.auth = auth
+            self.auth = (
+                auth
+                if callable(auth)
+                else {account[0]: account[1] for account in auth}
+            )
+
         else:
             self.auth = None
 
@@ -121,7 +123,7 @@ class App(FastAPI):
         @app.get("/login_check")
         @app.get("/login_check/")
         def login_check(user: str = Depends(get_current_user)):
-            if app.auth is None or not (user is None):
+            if app.auth is None or user is not None:
                 return
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
@@ -162,7 +164,7 @@ class App(FastAPI):
         @app.head("/", response_class=HTMLResponse)
         @app.get("/", response_class=HTMLResponse)
         def main(request: Request, user: str = Depends(get_current_user)):
-            if app.auth is None or not (user is None):
+            if app.auth is None or user is not None:
                 config = app.blocks.config
             else:
                 config = {
@@ -293,9 +295,12 @@ class App(FastAPI):
 def safe_join(directory: str, path: str) -> Optional[str]:
     """Safely path to a base directory to avoid escaping the base directory.
     Borrowed from: werkzeug.security.safe_join"""
-    _os_alt_seps: List[str] = list(
-        sep for sep in [os.path.sep, os.path.altsep] if sep is not None and sep != "/"
-    )
+    _os_alt_seps: List[str] = [
+        sep
+        for sep in [os.path.sep, os.path.altsep]
+        if sep is not None and sep != "/"
+    ]
+
 
     if path != "":
         filename = posixpath.normpath(path)
@@ -316,8 +321,11 @@ def get_types(cls_set: List[Type]):
     for cls in cls_set:
         doc = inspect.getdoc(cls)
         doc_lines = doc.split("\n")
-        for line in doc_lines:
-            if "value (" in line:
-                types.append(line.split("value (")[1].split(")")[0])
+        types.extend(
+            line.split("value (")[1].split(")")[0]
+            for line in doc_lines
+            if "value (" in line
+        )
+
         docset.append(doc_lines[1].split(":")[-1])
     return docset, types

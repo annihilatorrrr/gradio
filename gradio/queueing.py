@@ -20,8 +20,9 @@ def queue_thread(path_to_local_server: str) -> None:
                 _, hash, input_data, task_type = next_job
                 start_job(hash)
                 response = requests.post(
-                    path_to_local_server + "api/" + task_type + "/", json=input_data
+                    f"{path_to_local_server}api/{task_type}/", json=input_data
                 )
+
                 if response.status_code == 200:
                     pass_job(hash, response.json())
                 else:
@@ -30,7 +31,6 @@ def queue_thread(path_to_local_server: str) -> None:
                 time.sleep(1)
         except:
             time.sleep(1)
-            pass
 
 
 def generate_hash() -> str:
@@ -138,7 +138,7 @@ def push(body: QueuePushBody) -> Tuple[str, int]:
     """
     )
     result = c.fetchone()
-    if not (result[0] == 0):
+    if result[0] != 0:
         queue_position += 1
     conn.commit()
     return hash, queue_position
@@ -202,7 +202,7 @@ def get_status(hash: str) -> Tuple[str, int]:
         """
         )
         result = c.fetchone()
-        if not (result[0] == 0):
+        if result[0] != 0:
             queue_position += 1
         conn.commit()
         return "QUEUED", queue_position

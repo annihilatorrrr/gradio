@@ -46,12 +46,9 @@ def version_check():
         latest_pkg_version = requests.get(url=PKG_VERSION_URL).json()["version"]
         if StrictVersion(latest_pkg_version) > StrictVersion(current_pkg_version):
             print(
-                "IMPORTANT: You are using gradio version {}, "
-                "however version {} "
-                "is available, please upgrade.".format(
-                    current_pkg_version, latest_pkg_version
-                )
+                f"IMPORTANT: You are using gradio version {current_pkg_version}, however version {latest_pkg_version} is available, please upgrade."
             )
+
             print("--------")
     except json.decoder.JSONDecodeError:
         warnings.warn("unable to parse version details from package URL.")
@@ -72,8 +69,9 @@ def get_local_ip_address() -> str:
 def initiated_analytics(data: Dict[str:Any]) -> None:
     try:
         requests.post(
-            analytics_url + "gradio-initiated-analytics/", data=data, timeout=3
+            f"{analytics_url}gradio-initiated-analytics/", data=data, timeout=3
         )
+
     except (requests.ConnectionError, requests.exceptions.ReadTimeout):
         pass  # do not push analytics if no network
 
@@ -81,8 +79,9 @@ def initiated_analytics(data: Dict[str:Any]) -> None:
 def launch_analytics(data: Dict[str, Any]) -> None:
     try:
         requests.post(
-            analytics_url + "gradio-launched-analytics/", data=data, timeout=3
+            f"{analytics_url}gradio-launched-analytics/", data=data, timeout=3
         )
+
     except (requests.ConnectionError, requests.exceptions.ReadTimeout):
         pass  # do not push analytics if no network
 
@@ -90,8 +89,11 @@ def launch_analytics(data: Dict[str, Any]) -> None:
 def integration_analytics(data: Dict[str, Any]) -> None:
     try:
         requests.post(
-            analytics_url + "gradio-integration-analytics/", data=data, timeout=3
+            f"{analytics_url}gradio-integration-analytics/",
+            data=data,
+            timeout=3,
         )
+
     except (requests.ConnectionError, requests.exceptions.ReadTimeout):
         pass  # do not push analytics if no network
 
@@ -103,7 +105,7 @@ def error_analytics(ip_address: str, message: str) -> None:
     """
     data = {"ip_address": ip_address, "error": message}
     try:
-        requests.post(analytics_url + "gradio-error-analytics/", data=data, timeout=3)
+        requests.post(f"{analytics_url}gradio-error-analytics/", data=data, timeout=3)
     except (requests.ConnectionError, requests.exceptions.ReadTimeout):
         pass  # do not push analytics if no network
 
@@ -112,9 +114,7 @@ async def log_feature_analytics(ip_address: str, feature: str) -> None:
     data = {"ip_address": ip_address, "feature": feature}
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.post(
-                analytics_url + "gradio-feature-analytics/", data=data
-            ):
+            async with session.post(f"{analytics_url}gradio-feature-analytics/", data=data):
                 pass
         except (aiohttp.ClientError):
             pass  # do not push analytics if no network
@@ -256,7 +256,7 @@ def assert_configs_are_equivalent_besides_ids(
 
 
 def format_ner_list(input_string: str, ner_groups: Dict[str : str | int]):
-    if len(ner_groups) == 0:
+    if not ner_groups:
         return [(input_string, None)]
 
     output = []
@@ -264,8 +264,13 @@ def format_ner_list(input_string: str, ner_groups: Dict[str : str | int]):
 
     for group in ner_groups:
         entity, start, end = group["entity_group"], group["start"], group["end"]
-        output.append((input_string[prev_end:start], None))
-        output.append((input_string[start:end], entity))
+        output.extend(
+            (
+                (input_string[prev_end:start], None),
+                (input_string[start:end], entity),
+            )
+        )
+
         prev_end = end
 
     output.append((input_string[end:], None))
@@ -291,10 +296,7 @@ def delete_none(_dict):
 
 
 def resolve_singleton(_list):
-    if len(_list) == 1:
-        return _list[0]
-    else:
-        return _list
+    return _list[0] if len(_list) == 1 else _list
 
 
 def component_or_layout_class(cls_name: str) -> Component | BlockContext:
@@ -490,8 +492,7 @@ class Request:
         Returns:
             Request
         """
-        request = httpx.Request(method, url, **kwargs)
-        return request
+        return httpx.Request(method, url, **kwargs)
 
     def _validate_response_data(self, response: ResponseJson) -> ResponseJson:
         """
@@ -532,8 +533,7 @@ class Request:
         Returns:
             ResponseJson: Validated Json object.
         """
-        validated_data = parse_obj_as(self._validation_model, response)
-        return validated_data
+        return parse_obj_as(self._validation_model, response)
 
     def _validate_response_by_validation_function(
         self, response: ResponseJson
@@ -545,8 +545,7 @@ class Request:
         Returns:
             ResponseJson: Validated Json object.
         """
-        validated_data = self._validation_function(response)
-        return validated_data
+        return self._validation_function(response)
 
     def is_valid(self, raise_exceptions: bool = False) -> bool:
         """

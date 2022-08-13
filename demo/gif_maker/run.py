@@ -11,9 +11,9 @@ def gif_maker(img_files):
         size = (width,height)
         img_array.append(img)
     output_file = "test.mp4"
-    out = cv2.VideoWriter(output_file,cv2.VideoWriter_fourcc(*'h264'), 15, size) 
-    for i in range(len(img_array)):
-        out.write(img_array[i])
+    out = cv2.VideoWriter(output_file,cv2.VideoWriter_fourcc(*'h264'), 15, size)
+    for item in img_array:
+        out.write(item)
     out.release()
     return output_file
 

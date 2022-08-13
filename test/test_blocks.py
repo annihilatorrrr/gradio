@@ -170,10 +170,10 @@ class TestBlocks(unittest.TestCase):
 
         demo.launch(prevent_thread_lock=True)
         demo.integrate(comet_ml=experiment)
-        experiment.log_text.assert_called_with("gradio: " + demo.local_url)
+        experiment.log_text.assert_called_with(f"gradio: {demo.local_url}")
         demo.share_url = "tmp"  # used to avoid creating real share links.
         demo.integrate(comet_ml=experiment)
-        experiment.log_text.assert_called_with("gradio: " + demo.share_url)
+        experiment.log_text.assert_called_with(f"gradio: {demo.share_url}")
         self.assertEqual(experiment.log_other.call_count, 2)
         demo.share_url = None
         demo.close()
@@ -220,7 +220,7 @@ def test_slider_random_value_config():
     ]
     assert all(dependencies_on_load)
     assert len(dependencies_on_load) == 2
-    assert not any([dep["queue"] for dep in demo.config["dependencies"]])
+    assert not any(dep["queue"] for dep in demo.config["dependencies"])
 
 
 def test_io_components_attach_load_events_when_value_is_fn():
@@ -229,9 +229,7 @@ def test_io_components_attach_load_events_when_value_is_fn():
 
     while classes_to_check:
         subclass = classes_to_check.pop()
-        children = subclass.__subclasses__()
-
-        if children:
+        if children := subclass.__subclasses__():
             classes_to_check.extend(children)
         if "value" in inspect.signature(subclass).parameters:
             subclasses.append(subclass)

@@ -106,10 +106,10 @@ async def run_interpret(interface, raw_input):
                             **interpret_kwargs
                         )
                     )
-            elif interp == "shap" or interp == "shapley":
+            elif interp in ["shap", "shapley"]:
                 try:
                     import shap  # type: ignore
-                except (ImportError, ModuleNotFoundError):
+                except ImportError:
                     raise ValueError(
                         "The package `shap` is required for this interpretation method. Try: `pip install shap`"
                     )
@@ -176,7 +176,7 @@ def diff(original, perturbed):
     try:  # try computing numerical difference
         score = float(original) - float(perturbed)
     except ValueError:  # otherwise, look at strict difference in label
-        score = int(not (original == perturbed))
+        score = int(original != perturbed)
     return score
 
 
@@ -189,24 +189,17 @@ def quantify_difference_in_label(interface, original_output, perturbed_output):
         original_label = post_original_output["label"]
         perturbed_label = post_perturbed_output["label"]
 
-        # Handle different return types of Label interface
-        if "confidences" in post_original_output:
-            original_confidence = original_output[0][original_label]
-            perturbed_confidence = perturbed_output[0][original_label]
-            score = original_confidence - perturbed_confidence
-        else:
-            score = diff(original_label, perturbed_label)
-        return score
-
+        if "confidences" not in post_original_output:
+            return diff(original_label, perturbed_label)
+        original_confidence = original_output[0][original_label]
+        perturbed_confidence = perturbed_output[0][original_label]
+        return original_confidence - perturbed_confidence
     elif isinstance(output_component, Number):
-        score = diff(post_original_output, post_perturbed_output)
-        return score
+        return diff(post_original_output, post_perturbed_output)
 
     else:
         raise ValueError(
-            "This interpretation method doesn't support the Output component: {}".format(
-                output_component
-            )
+            f"This interpretation method doesn't support the Output component: {output_component}"
         )
 
 
@@ -218,24 +211,21 @@ def get_regression_or_classification_value(
     post_original_output = output_component.postprocess(original_output[0])
     post_perturbed_output = output_component.postprocess(perturbed_output[0])
 
-    if type(output_component) == Label:
-        original_label = post_original_output["label"]
-        perturbed_label = post_perturbed_output["label"]
-
-        # Handle different return types of Label interface
-        if "confidences" in post_original_output:
-            if math.isnan(perturbed_output[0][original_label]):
-                return 0
-            return perturbed_output[0][original_label]
-        else:
-            score = diff(
-                perturbed_label, original_label
-            )  # Intentionally inverted order of arguments.
-        return score
-
-    else:
+    if type(output_component) != Label:
         raise ValueError(
-            "This interpretation method doesn't support the Output component: {}".format(
-                output_component
-            )
+            f"This interpretation method doesn't support the Output component: {output_component}"
         )
+
+    original_label = post_original_output["label"]
+    perturbed_label = post_perturbed_output["label"]
+
+    # Handle different return types of Label interface
+    if "confidences" in post_original_output:
+        if math.isnan(perturbed_output[0][original_label]):
+            return 0
+        return perturbed_output[0][original_label]
+    else:
+        score = diff(
+            perturbed_label, original_label
+        )  # Intentionally inverted order of arguments.
+    return score

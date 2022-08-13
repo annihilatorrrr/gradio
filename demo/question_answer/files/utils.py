@@ -36,9 +36,9 @@ class SquadExample(object):
 
     def __repr__(self):
         s = ""
-        s += "qas_id: %s" % (self.qas_id)
-        s += ", question_text: %s" % (self.question_text)
-        s += ", doc_tokens: [%s]" % (" ".join(self.doc_tokens))
+        s += f"qas_id: {self.qas_id}"
+        s += f", question_text: {self.question_text}"
+        s += f', doc_tokens: [{" ".join(self.doc_tokens)}]'
         if self.start_position:
             s += ", start_position: %d" % (self.start_position)
         if self.end_position:
@@ -82,9 +82,7 @@ def input_to_squad_example(passage, question):
     """Convert input passage and question into a SquadExample."""
 
     def is_whitespace(c):
-        if c == " " or c == "\t" or c == "\r" or c == "\n" or ord(c) == 0x202F:
-            return True
-        return False
+        return c == " " or c == "\t" or c == "\r" or c == "\n" or ord(c) == 0x202F
 
     paragraph_text = passage
     doc_tokens = []
@@ -186,7 +184,7 @@ def squad_examples_to_features(
     query_tokens = tokenizer.tokenize(example.question_text)
 
     if len(query_tokens) > max_query_length:
-        query_tokens = query_tokens[0:max_query_length]
+        query_tokens = query_tokens[:max_query_length]
 
     tok_to_orig_index = []
     orig_to_tok_index = []
@@ -424,10 +422,7 @@ def _compute_softmax(scores):
         exp_scores.append(x)
         total_sum += x
 
-    probs = []
-    for score in exp_scores:
-        probs.append(score / total_sum)
-    return probs
+    return [score / total_sum for score in exp_scores]
 
 
 def get_answer(
@@ -437,10 +432,7 @@ def get_answer(
     for feature in features:
         example_index_to_features[feature.example_index].append(feature)
 
-    unique_id_to_result = {}
-    for result in all_results:
-        unique_id_to_result[result.unique_id] = result
-
+    unique_id_to_result = {result.unique_id: result for result in all_results}
     _PrelimPrediction = collections.namedtuple(
         "PrelimPrediction",
         ["feature_index", "start_index", "end_index", "start_logit", "end_logit"],
@@ -519,11 +511,9 @@ def get_answer(
             if final_text in seen_predictions:
                 continue
 
-            seen_predictions[final_text] = True
         else:
             final_text = ""
-            seen_predictions[final_text] = True
-
+        seen_predictions[final_text] = True
         nbest.append(
             _NbestPrediction(
                 text=final_text,
@@ -545,19 +535,15 @@ def get_answer(
             )
         )
 
-    assert len(nbest) >= 1
+    assert nbest
 
-    total_scores = []
-    for entry in nbest:
-        total_scores.append(entry.start_logit + entry.end_logit)
-
+    total_scores = [entry.start_logit + entry.end_logit for entry in nbest]
     probs = _compute_softmax(total_scores)
 
-    answer = {
+    return {
         "answer": nbest[0].text,
         "start": nbest[0].start_index,
         "end": nbest[0].end_index,
         "confidence": probs[0],
         "document": example.doc_tokens,
     }
-    return answer

@@ -13,16 +13,15 @@ getting_started_template = Path(GETTING_STARTED_TEMPLATE_FILEPATH).read_text()
 code_tags = re.findall(r"\$code_([^\s]+)", getting_started_template)
 demo_tags = re.findall(r"\$demo_([^\s]+)", getting_started_template)
 codes = {}
-demos = {}
-
 for src in code_tags:
     context = Path(f"demo/{src}/run.py").read_text()
     # Replace the condition to run the demo directly with actual launch code
     context = re.sub(r"if __name__(.*[\n$]*)*", "demo.launch()", context)
     codes[src] = f"```python\n{context}\n```\n"  # Convert to Markdown code block
 
-for src in demo_tags:
-    demos[src] = f"![`{src}` demo](demo/{src}/screenshot.gif)"
+demos = {
+    src: f"![`{src}` demo](demo/{src}/screenshot.gif)" for src in demo_tags
+}
 
 # Replace the headers in the getting started template with a smaller header (e.g. H3 instead of H2) to
 # make the README more readable and less cluttered.
