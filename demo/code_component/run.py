@@ -1,19 +1,13 @@
 import gradio as gr
 
-css = (
-    "footer {display: none !important;} .gradio-container {min-height: 0px !important;}"
+demo = gr.Interface(
+    lambda x: x,
+    gr.Code(language="python"),
+    gr.Code(language="python"),
+    examples=[[("/Users/freddy/sources/gradio/demo/code_component/run.py",)],
+               ["print('Hello, World!')"],
+               [("/Users/freddy/sources/gradio/demo/code/run.py", )]]
 )
-
-with gr.Blocks(css=css) as demo:
-    gr.Code(
-        value="""def hello_world():
-    return "Hello, world!"
-    
-print(hello_world())""",
-        language="python",
-        interactive=True,
-        show_label=False,
-    )
 
 if __name__ == "__main__":
     demo.launch()

@@ -145,6 +145,12 @@ dracula = gr.themes.Base(
 ).set(
     body_background_fill=dracula_gray.c500,
     color_accent_soft=dracula_gray.c100,
+    error_border_color="#fecaca",
+    error_background_fill="#fee2e2",
+    error_icon_color="#b91c1c",
+    error_icon_color_dark="#ef4444",
+    error_text_color="#ef4444",
+    error_text_color_dark="#ef4444",
     background_fill_primary=dracula_gray.c500,
     background_fill_secondary=dracula_gray.c500,
     block_background_fill=dracula_gray.c300,
@@ -205,7 +211,6 @@ class TestSemverMatch:
 
 class TestGetThemeAssets:
     def test_get_theme_assets(self):
-
         space_info = huggingface_hub.hf_api.SpaceInfo(
             id="freddyaboulton/dracula",
             siblings=[
@@ -235,6 +240,8 @@ class TestGetThemeAssets:
                 },
             ],
             tags=["gradio-theme", "gradio"],
+            private=False,
+            likes=0,
         )
 
         assert get_theme_assets(space_info) == [
@@ -247,17 +254,10 @@ class TestGetThemeAssets:
         assert gr.Theme._theme_version_exists(space_info, "0.1.1")
         assert not gr.Theme._theme_version_exists(space_info, "2.0.0")
 
-    def test_raises_if_space_not_properly_tagged(self):
-        space_info = huggingface_hub.hf_api.SpaceInfo(
-            id="freddyaboulton/dracula", tags=["gradio"]
-        )
-
-        with pytest.raises(
-            ValueError,
-            match="freddyaboulton/dracula is not a valid gradio-theme space!",
-        ):
-            with patch("huggingface_hub.HfApi.space_info", return_value=space_info):
-                get_theme_assets(space_info)
+    @pytest.mark.flaky
+    def test_load_space_from_hub_works(self):
+        theme = gr.Theme.from_hub("gradio/seafoam")
+        assert isinstance(theme, gr.Theme)
 
 
 class TestBuiltInThemes:
@@ -279,26 +279,26 @@ class TestThemeUploadDownload:
     @patch("gradio.themes.base.get_theme_assets", return_value=assets)
     def test_get_next_version(self, mock):
         next_version = gr.themes.Base._get_next_version(
-            SpaceInfo(id="gradio/dracula_test")
+            SpaceInfo(id="gradio/dracula_test", private=False, likes=0, tags=[])
         )
         assert next_version == "3.20.2"
 
+    ## Commenting out until after 4.0 Spaces are up
+    # @pytest.mark.flaky
+    # def test_theme_download(self):
+    #     assert (
+    #         gr.themes.Base.from_hub("gradio/dracula_test@0.0.2").to_dict()
+    #         == dracula.to_dict()
+    #     )
+
+    #     with gr.Blocks(theme="gradio/dracula_test@0.0.2") as demo:
+    #         pass
+
+    #     assert demo.theme.to_dict() == dracula.to_dict()
+    #     assert demo.theme.name == "gradio/dracula_test"
+
     @pytest.mark.flaky
-    def test_theme_download(self):
-
-        assert (
-            gr.themes.Base.from_hub("gradio/dracula_test@0.0.1").to_dict()
-            == dracula.to_dict()
-        )
-
-        with gr.Blocks(theme="gradio/dracula_test@0.0.1") as demo:
-            pass
-
-        assert demo.theme.to_dict() == dracula.to_dict()
-        assert demo.theme.name == "gradio/dracula_test"
-
     def test_theme_download_raises_error_if_theme_does_not_exist(self):
-
         with pytest.raises(
             ValueError, match="The space freddyaboulton/nonexistent does not exist"
         ):
@@ -340,7 +340,7 @@ class TestThemeUploadDownload:
     def test_first_upload_no_version(self, mock_1):
         mock_1.whoami.return_value = {"name": "freddyaboulton"}
 
-        mock_1.HfApi().space_info.side_effect = huggingface_hub.hf_api.HTTPError("Foo")
+        mock_1.HfApi().space_info.side_effect = huggingface_hub.hf_api.HTTPError("Foo")  # type: ignore
 
         gr.themes.Monochrome().push_to_hub(repo_name="does_not_exist")
         repo_call_args = mock_1.HfApi().create_commit.call_args_list[0][1]

@@ -1,11 +1,12 @@
+import dataclasses
 from pathlib import Path
 
 import pytest
 
 import gradio
 import gradio as gr
-from gradio.networking import Server
-from gradio.reload import _setup_config
+from gradio.cli.commands.reload import _setup_config
+from gradio.http_server import Server
 
 
 def build_demo():
@@ -15,15 +16,24 @@ def build_demo():
     return demo
 
 
+@dataclasses.dataclass
+class Config:
+    module_name: str
+    path: Path
+    watch_dirs: list[str]
+    demo_name: str
+
+
 class TestReload:
     @pytest.fixture(autouse=True)
     def argv(self):
         return ["demo/calculator/run.py"]
 
     @pytest.fixture
-    def config(self, monkeypatch, argv):
+    def config(self, monkeypatch, argv) -> Config:
         monkeypatch.setattr("sys.argv", ["gradio"] + argv)
-        return _setup_config()
+        name = argv[1].replace("--demo-name", "").strip() if len(argv) > 1 else "demo"
+        return Config(*_setup_config(argv[0], name))
 
     @pytest.fixture(params=[{}])
     def reloader(self, config):
@@ -33,29 +43,17 @@ class TestReload:
         reloader.close()
 
     def test_config_default_app(self, config):
-        assert config.app == "demo.calculator.run:demo.app"
+        assert config.module_name == "demo.calculator.run"
 
-    @pytest.mark.parametrize("argv", [["demo/calculator/run.py", "test.app"]])
+    @pytest.mark.parametrize("argv", [["demo/calculator/run.py", "--demo-name test"]])
     def test_config_custom_app(self, config):
-        assert config.app == "demo.calculator.run:test.app"
+        assert config.module_name == "demo.calculator.run"
+        assert config.demo_name == "test"
 
     def test_config_watch_gradio(self, config):
-        gradio_dir = Path(gradio.__file__).parent
-        assert gradio_dir in config.reload_dirs
+        gradio_dir = str(Path(gradio.__file__).parent)
+        assert gradio_dir in config.watch_dirs
 
     def test_config_watch_app(self, config):
-        demo_dir = Path("demo/calculator/run.py").resolve().parent
-        assert demo_dir in config.reload_dirs
-
-    def test_config_load_default(self, config):
-        config.load()
-        assert config.loaded is True
-
-    @pytest.mark.parametrize("argv", [["test/test_reload.py", "build_demo"]])
-    def test_config_load_factory(self, config):
-        config.load()
-        assert config.loaded is True
-
-    def test_reload_run_default(self, reloader):
-        reloader.run_in_thread()
-        assert reloader.started is True
+        demo_dir = str(Path("demo/calculator/run.py").resolve().parent)
+        assert demo_dir in config.watch_dirs

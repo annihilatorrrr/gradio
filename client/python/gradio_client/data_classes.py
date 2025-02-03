@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing_extensions import NotRequired, TypedDict
+from typing import Any, TypedDict
+
+from typing_extensions import NotRequired
 
 
 class FileData(TypedDict):
@@ -11,3 +13,16 @@ class FileData(TypedDict):
         bool
     ]  # whether the data corresponds to a file or base64 encoded data
     orig_name: NotRequired[str]  # original filename
+    mime_type: NotRequired[str]
+    is_stream: NotRequired[bool]
+
+
+class ParameterInfo(TypedDict):
+    label: str
+    parameter_name: NotRequired[str]
+    parameter_has_default: NotRequired[bool]
+    parameter_default: NotRequired[Any]
+    type: dict
+    python_type: dict
+    component: str
+    example_input: Any

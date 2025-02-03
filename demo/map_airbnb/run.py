@@ -1,3 +1,4 @@
+# type: ignore
 import gradio as gr
 import plotly.graph_objects as go
 from datasets import load_dataset
@@ -7,7 +8,7 @@ df = dataset.to_pandas()
 
 def filter_map(min_price, max_price, boroughs):
 
-    filtered_df = df[(df['neighbourhood_group'].isin(boroughs)) & 
+    filtered_df = df[(df['neighbourhood_group'].isin(boroughs)) &
           (df['price'] > min_price) & (df['price'] < max_price)]
     names = filtered_df["name"].tolist()
     prices = filtered_df["price"].tolist()
@@ -47,7 +48,7 @@ with gr.Blocks() as demo:
             max_price = gr.Number(value=1000, label="Maximum Price")
         boroughs = gr.CheckboxGroup(choices=["Queens", "Brooklyn", "Manhattan", "Bronx", "Staten Island"], value=["Queens", "Brooklyn"], label="Select Boroughs:")
         btn = gr.Button(value="Update Filter")
-        map = gr.Plot().style()
+        map = gr.Plot()
     demo.load(filter_map, [min_price, max_price, boroughs], map)
     btn.click(filter_map, [min_price, max_price, boroughs], map)
 

@@ -1,9 +1,7 @@
 import gradio as gr
 
-
 def func(slider_1, slider_2, *args):
     return slider_1 + slider_2 * 5
-
 
 demo = gr.Interface(
     func,
@@ -16,7 +14,6 @@ demo = gr.Interface(
         gr.Slider(value=0.25, minimum=5, maximum=30, step=-1),
     ],
     "number",
-    interpretation="default"
 )
 
 if __name__ == "__main__":

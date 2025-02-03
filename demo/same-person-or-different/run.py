@@ -43,7 +43,6 @@ feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
 model = AutoModelForAudioXVector.from_pretrained(model_name).to(device)
 cosine_sim = torch.nn.CosineSimilarity(dim=-1)
 
-
 def similarity_fn(path1, path2):
     if not (path1 and path2):
         return '<b style="color:red">ERROR: Please record audio for *both* speakers!</b>'
@@ -70,11 +69,10 @@ def similarity_fn(path1, path2):
     return output
 
 inputs = [
-    gr.inputs.Audio(source="microphone", type="filepath", optional=True, label="Speaker #1"),
-    gr.inputs.Audio(source="microphone", type="filepath", optional=True, label="Speaker #2"),
+    gr.Audio(sources=["microphone"], type="filepath", label="Speaker #1"),
+    gr.Audio(sources=["microphone"], type="filepath", label="Speaker #2"),
 ]
-output = gr.outputs.HTML(label="")
-
+output = gr.HTML(label="")
 
 description = (
     "This demo from Microsoft will compare two speech samples and determine if they are from the same speaker. "
@@ -97,7 +95,7 @@ interface = gr.Interface(
     inputs=inputs,
     outputs=output,
     layout="horizontal",
-    allow_flagging=False,
+    flagging_mode="never",
     live=False,
     examples=examples,
     cache_examples=False

@@ -1,11 +1,9 @@
 import gradio as gr
 import time
 
-
 def say_hello(name):
   time.sleep(5)
   return f"Hello {name}!"
-
 
 with gr.Blocks() as demo:
   inp = gr.Textbox()
@@ -13,4 +11,4 @@ with gr.Blocks() as demo:
   button = gr.Button()
   button.click(say_hello, inp, outp)
 
-  demo.queue(concurrency_count=41).launch()
+  demo.launch()

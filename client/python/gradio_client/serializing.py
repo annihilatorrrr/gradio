@@ -1,7 +1,11 @@
+"""Included for backwards compatibility with 3.x spaces/apps."""
+
 from __future__ import annotations
 
 import json
 import os
+import secrets
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Any
@@ -38,14 +42,16 @@ class Serializable:
     # For backwards compatibility
     def input_api_info(self) -> tuple[str, str]:
         api_info = self.api_info()
-        return (api_info["serialized_input"][0], api_info["serialized_input"][1])
+        types = api_info.get("serialized_input", [api_info["info"]["type"]] * 2)  # type: ignore
+        return (types[0], types[1])
 
     # For backwards compatibility
     def output_api_info(self) -> tuple[str, str]:
         api_info = self.api_info()
-        return (api_info["serialized_output"][0], api_info["serialized_output"][1])
+        types = api_info.get("serialized_output", [api_info["info"]["type"]] * 2)  # type: ignore
+        return (types[0], types[1])
 
-    def serialize(self, x: Any, load_dir: str | Path = ""):
+    def serialize(self, x: Any, load_dir: str | Path = "", allow_links: bool = False):
         """
         Convert data from human-readable format to serialized format for a browser.
         """
@@ -148,7 +154,10 @@ class ImgSerializable(Serializable):
     """Expects a base64 string as input/output which is serialized to a filepath."""
 
     def serialized_info(self):
-        return {"type": "string", "description": "filepath or URL to image"}
+        return {
+            "type": "string",
+            "description": "filepath on your computer (or URL) of image",
+        }
 
     def api_info(self) -> dict[str, bool | dict]:
         return {"info": serializer_types["ImgSerializable"], "serialized_info": True}
@@ -163,6 +172,7 @@ class ImgSerializable(Serializable):
         self,
         x: str | None,
         load_dir: str | Path = "",
+        allow_links: bool = False,
     ) -> str | None:
         """
         Convert from human-friendly version of a file (string filepath) to a serialized
@@ -171,11 +181,11 @@ class ImgSerializable(Serializable):
             x: String path to file to serialize
             load_dir: Path to directory containing x
         """
-        if x is None or x == "":
+        if not x:
             return None
-        is_url = utils.is_valid_url(x)
-        path = x if is_url else Path(load_dir) / x
-        return utils.encode_url_or_file_to_base64(path)
+        if utils.is_http_url_like(x):
+            return utils.encode_url_to_base64(x)
+        return utils.encode_file_to_base64(Path(load_dir) / x)
 
     def deserialize(
         self,
@@ -202,6 +212,11 @@ class ImgSerializable(Serializable):
 class FileSerializable(Serializable):
     """Expects a dict with base64 representation of object as input/output which is serialized to a filepath."""
 
+    def __init__(self) -> None:
+        self.stream = None
+        self.stream_name = None
+        super().__init__()
+
     def serialized_info(self):
         return self._single_file_serialized_info()
 
@@ -212,13 +227,19 @@ class FileSerializable(Serializable):
         }
 
     def _single_file_serialized_info(self):
-        return {"type": "string", "description": "filepath or URL to file"}
+        return {
+            "type": "string",
+            "description": "filepath on your computer (or URL) of file",
+        }
 
     def _multiple_file_serialized_info(self):
         return {
             "type": "array",
             "description": "List of filepath(s) or URL(s) to files",
-            "items": {"type": "string", "description": "filepath or URL to file"},
+            "items": {
+                "type": "string",
+                "description": "filepath on your computer (or URL) of file",
+            },
         }
 
     def _multiple_file_api_info(self):
@@ -248,23 +269,30 @@ class FileSerializable(Serializable):
         }
 
     def _serialize_single(
-        self, x: str | FileData | None, load_dir: str | Path = ""
+        self,
+        x: str | FileData | None,
+        load_dir: str | Path = "",
+        allow_links: bool = False,
     ) -> FileData | None:
         if x is None or isinstance(x, dict):
             return x
-        if utils.is_valid_url(x):
+        if utils.is_http_url_like(x):
             filename = x
             size = None
         else:
             filename = str(Path(load_dir) / x)
             size = Path(filename).stat().st_size
         return {
-            "name": filename,
-            "data": utils.encode_url_or_file_to_base64(filename),
+            "name": filename or None,
+            "data": None
+            if allow_links
+            else utils.encode_url_or_file_to_base64(filename),
             "orig_name": Path(filename).name,
-            "is_file": False,
             "size": size,
         }
+
+    def _setup_stream(self, url, hf_token):
+        return utils.download_byte_stream(url, hf_token)
 
     def _deserialize_single(
         self,
@@ -280,20 +308,36 @@ class FileSerializable(Serializable):
         elif isinstance(x, dict):
             if x.get("is_file"):
                 filepath = x.get("name")
-                assert filepath is not None, f"The 'name' field is missing in {x}"
+                if filepath is None:
+                    raise ValueError(f"The 'name' field is missing in {x}")
                 if root_url is not None:
                     file_name = utils.download_tmp_copy_of_file(
                         root_url + "file=" + filepath,
                         hf_token=hf_token,
                         dir=save_dir,
-                    ).name
+                    )
                 else:
-                    file_name = utils.create_tmp_copy_of_file(
-                        filepath, dir=save_dir
-                    ).name
+                    file_name = utils.create_tmp_copy_of_file(filepath, dir=save_dir)
+            elif x.get("is_stream"):
+                if not (x["name"] and root_url and save_dir):
+                    raise ValueError(
+                        "name and root_url and save_dir must all be present"
+                    )
+                if not self.stream or self.stream_name != x["name"]:
+                    self.stream = self._setup_stream(
+                        root_url + "stream/" + x["name"], hf_token=hf_token
+                    )
+                    self.stream_name = x["name"]
+                chunk = next(self.stream)
+                path = Path(save_dir or tempfile.gettempdir()) / secrets.token_hex(20)
+                path.mkdir(parents=True, exist_ok=True)
+                path = path / x.get("orig_name", "output")
+                path.write_bytes(chunk)
+                file_name = str(path)
             else:
                 data = x.get("data")
-                assert data is not None, f"The 'data' field is missing in {x}"
+                if data is None:
+                    raise ValueError(f"The 'data' field is missing in {x}")
                 file_name = utils.decode_base64_to_file(data, dir=save_dir).name
         else:
             raise ValueError(
@@ -305,6 +349,7 @@ class FileSerializable(Serializable):
         self,
         x: str | FileData | None | list[str | FileData | None],
         load_dir: str | Path = "",
+        allow_links: bool = False,
     ) -> FileData | None | list[FileData | None]:
         """
         Convert from human-friendly version of a file (string filepath) to a
@@ -312,13 +357,14 @@ class FileSerializable(Serializable):
         Parameters:
             x: String path to file to serialize
             load_dir: Path to directory containing x
+            allow_links: Will allow path returns instead of raw file content
         """
         if x is None or x == "":
             return None
         if isinstance(x, list):
-            return [self._serialize_single(f, load_dir=load_dir) for f in x]
+            return [self._serialize_single(f, load_dir, allow_links) for f in x]
         else:
-            return self._serialize_single(x, load_dir=load_dir)
+            return self._serialize_single(x, load_dir, allow_links)
 
     def deserialize(
         self,
@@ -355,7 +401,10 @@ class FileSerializable(Serializable):
 
 class VideoSerializable(FileSerializable):
     def serialized_info(self):
-        return {"type": "string", "description": "filepath or URL to video file"}
+        return {
+            "type": "string",
+            "description": "filepath on your computer (or URL) of video file",
+        }
 
     def api_info(self) -> dict[str, dict | bool]:
         return {"info": serializer_types["FileSerializable"], "serialized_info": True}
@@ -367,9 +416,9 @@ class VideoSerializable(FileSerializable):
         }
 
     def serialize(
-        self, x: str | None, load_dir: str | Path = ""
+        self, x: str | None, load_dir: str | Path = "", allow_links: bool = False
     ) -> tuple[FileData | None, None]:
-        return (super().serialize(x, load_dir), None)  # type: ignore
+        return (super().serialize(x, load_dir, allow_links), None)  # type: ignore
 
     def deserialize(
         self,
@@ -383,7 +432,8 @@ class VideoSerializable(FileSerializable):
         version (string filepath). Optionally, save the file to the directory specified by `save_dir`
         """
         if isinstance(x, (tuple, list)):
-            assert len(x) == 2, f"Expected tuple of length 2. Received: {x}"
+            if len(x) != 2:
+                raise ValueError(f"Expected tuple of length 2. Received: {x}")
             x_as_list = [x[0], x[1]]
         else:
             raise ValueError(f"Expected tuple of length 2. Received: {x}")
@@ -409,6 +459,7 @@ class JSONSerializable(Serializable):
         self,
         x: str | None,
         load_dir: str | Path = "",
+        allow_links: bool = False,
     ) -> dict | list | None:
         """
         Convert from a a human-friendly version (string path to json file) to a
@@ -465,7 +516,7 @@ class GallerySerializable(Serializable):
         }
 
     def serialize(
-        self, x: str | None, load_dir: str | Path = ""
+        self, x: str | None, load_dir: str | Path = "", allow_links: bool = False
     ) -> list[list[str | None]] | None:
         if x is None or x == "":
             return None
@@ -474,7 +525,7 @@ class GallerySerializable(Serializable):
         with captions_file.open("r") as captions_json:
             captions = json.load(captions_json)
         for file_name, caption in captions.items():
-            img = FileSerializable().serialize(file_name)
+            img = FileSerializable().serialize(file_name, allow_links=allow_links)
             files.append([img, caption])
         return files
 
@@ -529,6 +580,7 @@ COMPONENT_MAPPING: dict[str, type] = {
     "file": FileSerializable,
     "dataframe": JSONSerializable,
     "timeseries": JSONSerializable,
+    "fileexplorer": JSONSerializable,
     "state": SimpleSerializable,
     "button": StringSerializable,
     "uploadbutton": FileSerializable,
@@ -545,8 +597,6 @@ COMPONENT_MAPPING: dict[str, type] = {
     "lineplot": JSONSerializable,
     "scatterplot": JSONSerializable,
     "markdown": StringSerializable,
-    "dataset": StringSerializable,
     "code": StringSerializable,
-    "interpretation": SimpleSerializable,
     "annotatedimage": JSONSerializable,
 }

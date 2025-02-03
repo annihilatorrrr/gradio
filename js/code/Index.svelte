@@ -1,40 +1,53 @@
+<script context="module" lang="ts">
+	export { default as BaseCode } from "./shared/Code.svelte";
+	export { default as BaseCopy } from "./shared/Copy.svelte";
+	export { default as BaseDownload } from "./shared/Download.svelte";
+	export { default as BaseWidget } from "./shared/Widgets.svelte";
+	export { default as BaseExample } from "./Example.svelte";
+</script>
+
 <script lang="ts">
-	import { createEventDispatcher, afterUpdate } from "svelte";
-	import { _ } from "svelte-i18n";
+	import type { Gradio } from "@gradio/utils";
+	import { afterUpdate } from "svelte";
 
-	import type { LoadingStatus } from "../app/src/components/StatusTracker/types";
+	import type { LoadingStatus } from "@gradio/statustracker";
 
-	import Code from "./interactive/Code.svelte";
-	import StatusTracker from "../app/src/components/StatusTracker/StatusTracker.svelte";
+	import Code from "./shared/Code.svelte";
+	import Widget from "./shared/Widgets.svelte";
+	import { StatusTracker } from "@gradio/statustracker";
 	import { Block, BlockLabel, Empty } from "@gradio/atoms";
 	import { Code as CodeIcon } from "@gradio/icons";
 
-	import Widget from "./interactive/Widgets.svelte";
-
-	const dispatch = createEventDispatcher<{
+	export let gradio: Gradio<{
 		change: typeof value;
-		input: undefined;
-	}>();
-
-	export let value: string = "";
-	export let value_is_output: boolean = false;
-	export let language: string = "";
-	export let lines: number = 5;
-	export let target: HTMLElement;
-	export let elem_id: string = "";
-	export let elem_classes: Array<string> = [];
-	export let visible: boolean = true;
-	export let mode: "static" | "dynamic";
-	export let label: string = "Code";
-	export let show_label: boolean = true;
+		input: never;
+		blur: never;
+		focus: never;
+		clear_status: LoadingStatus;
+	}>;
+	export let value = "";
+	export let value_is_output = false;
+	export let language = "";
+	export let lines = 5;
+	export let max_lines: number | undefined = undefined;
+	export let elem_id = "";
+	export let elem_classes: string[] = [];
+	export let visible = true;
+	export let label = gradio.i18n("code.code");
+	export let show_label = true;
 	export let loading_status: LoadingStatus;
+	export let scale: number | null = null;
+	export let min_width: number | undefined = undefined;
+	export let wrap_lines = false;
 
-	let dark_mode = target.classList.contains("dark");
+	export let interactive: boolean;
 
-	function handle_change() {
-		dispatch("change", value);
+	let dark_mode = gradio.theme === "dark";
+
+	function handle_change(): void {
+		gradio.dispatch("change", value);
 		if (!value_is_output) {
-			dispatch("input");
+			gradio.dispatch("input");
 		}
 	}
 	afterUpdate(() => {
@@ -43,31 +56,44 @@
 	$: value, handle_change();
 </script>
 
-{#if mode === "static"}
-	<Block variant={"solid"} padding={false} {elem_id} {elem_classes} {visible}>
-		<StatusTracker {...loading_status} />
+<Block
+	height={max_lines && "fit-content"}
+	variant={"solid"}
+	padding={false}
+	{elem_id}
+	{elem_classes}
+	{visible}
+	{scale}
+	{min_width}
+>
+	<StatusTracker
+		autoscroll={gradio.autoscroll}
+		i18n={gradio.i18n}
+		{...loading_status}
+		on:clear_status={() => gradio.dispatch("clear_status", loading_status)}
+	/>
 
+	{#if show_label}
 		<BlockLabel Icon={CodeIcon} {show_label} {label} float={false} />
+	{/if}
 
-		{#if !value}
-			<Empty size="large" unpadded_box={true}>
-				<CodeIcon />
-			</Empty>
-		{:else}
-			<Widget {language} {value} />
+	{#if !value && !interactive}
+		<Empty unpadded_box={true} size="large">
+			<CodeIcon />
+		</Empty>
+	{:else}
+		<Widget {language} {value} />
 
-			<Code bind:value {language} {lines} {dark_mode} readonly />
-		{/if}
-	</Block>
-{:else}
-	<Block variant={"solid"} padding={false} {elem_id} {elem_classes} {visible}>
-		<StatusTracker {...loading_status} />
-
-		<BlockLabel Icon={CodeIcon} {show_label} {label} float={false} />
-
-		<Code bind:value {language} {lines} {dark_mode} />
-	</Block>
-{/if}
-
-<style>
-</style>
+		<Code
+			bind:value
+			{language}
+			{lines}
+			{max_lines}
+			{dark_mode}
+			{wrap_lines}
+			readonly={!interactive}
+			on:blur={() => gradio.dispatch("blur")}
+			on:focus={() => gradio.dispatch("focus")}
+		/>
+	{/if}
+</Block>

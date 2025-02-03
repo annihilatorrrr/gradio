@@ -2,7 +2,6 @@ import gradio as gr
 import os
 import numpy as np
 
-
 txt = "the quick brown fox"
 num = 10
 
@@ -36,17 +35,17 @@ with gr.Blocks() as demo:
         samples=[[True], [True], [False], [True], [False], [False]],
     )
 
-    c_2 = gr.CheckboxGroup(visible=False)
+    c_2 = gr.CheckboxGroup(visible=False, choices=['a', 'b', 'c'])
     gr.Dataset(
         label="CheckboxGroup",
         components=[c_2],
         samples=[
-            [[True, True, False]],
-            [[True, True, False]],
-            [[True, True, False]],
-            [[True, True, False]],
-            [[True, True, False]],
-            [[True, True, False]],
+            [["a"]],
+            [["a", "b"]],
+            [["a", "b", "c"]],
+            [["b"]],
+            [["c"]],
+            [["a", "c"]],
         ],
     )
     c_3 = gr.ColorPicker(visible=False)
@@ -162,19 +161,12 @@ with gr.Blocks() as demo:
             ["Some value"],
         ],
     )
-    t_2 = gr.TimeSeries(visible=False)
-    gr.Dataset(
-        components=[t_2],
-        label="TimeSeries",
-        samples=[[csv], [csv], [csv], [csv], [csv], [csv]],
-    )
     v = gr.Video(visible=False)
     gr.Dataset(
         components=[v],
         label="Video",
         samples=[[vid], [vid], [vid], [vid], [vid], [vid]],
     )
-
 
 if __name__ == "__main__":
     demo.launch()

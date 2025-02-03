@@ -2,23 +2,23 @@
 
 <div align="center">
 
+[<img src="../gradio.svg" alt="gradio" width=400>](https://gradio.app)<br>
+<em>轻松构建 & 分享 令人愉快的机器学习程序</em>
 
-  [<img src="../gradio.svg" alt="gradio" width=300>](https://gradio.app)<br>
-  <em>轻松构建 & 分享 令人愉快的机器学习程序</em>
+[![gradio-backend](https://github.com/gradio-app/gradio/actions/workflows/backend.yml/badge.svg)](https://github.com/gradio-app/gradio/actions/workflows/backend.yml)
+[![gradio-js](https://github.com/gradio-app/gradio/actions/workflows/ui.yml/badge.svg)](https://github.com/gradio-app/gradio/actions/workflows/ui.yml)  
+ [![PyPI](https://img.shields.io/pypi/v/gradio)](https://pypi.org/project/gradio/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/gradio)](https://pypi.org/project/gradio/)
+![Python version](https://img.shields.io/badge/python-3.10+-important)
+[![Twitter follow](https://img.shields.io/twitter/follow/gradio?style=social&label=follow)](https://twitter.com/gradio)
 
-  [![gradio-backend](https://github.com/gradio-app/gradio/actions/workflows/backend.yml/badge.svg)](https://github.com/gradio-app/gradio/actions/workflows/backend.yml)
-  [![gradio-js](https://github.com/gradio-app/gradio/actions/workflows/ui.yml/badge.svg)](https://github.com/gradio-app/gradio/actions/workflows/ui.yml)  
-  [![PyPI](https://img.shields.io/pypi/v/gradio)](https://pypi.org/project/gradio/)
-  [![PyPI downloads](https://img.shields.io/pypi/dm/gradio)](https://pypi.org/project/gradio/)
-  ![Python version](https://img.shields.io/badge/python-3.7+-important)
-  [![Twitter follow](https://img.shields.io/twitter/follow/gradio?style=social&label=follow)](https://twitter.com/gradio)
+[官网](https://gradio.app)
+| [文档](https://gradio.app/docs/)
+| [指南](https://gradio.app/guides/)
+| [开始](https://gradio.app/getting_started/)
+| [样例](../../demo/)
+| [English](https://github.com/gradio-app/gradio#readme)
 
-  [官网](https://gradio.app)
-  | [文档](https://gradio.app/docs/)
-  | [指南](https://gradio.app/guides/)
-  | [开始](https://gradio.app/getting_started/)]
-  | [样例](../../demo/)
-  | [English](https://github.com/gradio-app/gradio#readme)
 </div>
 
 # Gradio: 用Python构建机器学习网页APP
@@ -39,7 +39,7 @@ Gradio适用于:
 
 ### 快速开始
 
-**依赖**: Gradio只需要Python 3.7及以上版本！
+**依赖**: Gradio只需要[Python 3.8及以上版本](https://www.python.org/downloads/)！
 
 #### Gradio能做什么？
 
@@ -73,7 +73,7 @@ demo.launch()
 
 ![`hello_world` demo](../../demo/hello_world/screenshot.gif)
 
-####  `Interface` 类
+#### `Interface` 类
 
 你可能会注意到，在运行示例时我们创建了一个 `gradio.Interface` 。 `Interface` 类可以用用户接口包装任意的Python函数。在上面的示例中，我们使用了一个基于文本的简单函数，但这个函数可以是任何东西，从音乐生成器到税率计算器，再到预训练机器学习模型的预测函数。
 
@@ -142,15 +142,15 @@ import gradio as gr
 
 def sepia(input_img):
     sepia_filter = np.array([
-        [0.393, 0.769, 0.189], 
-        [0.349, 0.686, 0.168], 
+        [0.393, 0.769, 0.189],
+        [0.349, 0.686, 0.168],
         [0.272, 0.534, 0.131]
     ])
     sepia_img = input_img.dot(sepia_filter.T)
     sepia_img /= sepia_img.max()
     return sepia_img
 
-demo = gr.Interface(sepia, gr.Image(shape=(200, 200)), "image")
+demo = gr.Interface(sepia, gr.Image(), "image")
 demo.launch()
 ```
 
@@ -161,7 +161,7 @@ demo.launch()
 你也可以用 `type=` 关键字参数设置组件使用的数据类型。例如，如果你想让你的函数获取一个图像的文件路径，而不是一个NumPy数组时，输入 `Image` 组件可以写成：
 
 ```python
-gr.Image(type="filepath", shape=...)
+gr.Image(type="filepath")
 ```
 
 还要注意，我们的输入 `Image` 组件带有一个编辑按钮 🖉，它允许裁剪和放大图像。以这种方式操作图像可以帮助揭示机器学习模型中的偏见或隐藏的缺陷！
@@ -199,9 +199,9 @@ demo.launch()
 
 注意事项：
 
--  `Blocks` 由 `with` 子句组成，在该子句中创建的任何组件都会自动添加到应用程序中。
--  组件在应用程序中按创建的顺序垂直显示，（稍后我们将介绍自定义布局！）
--  一个 按钮 `Button` 被创建，然后添加了一个 `click` 事件监听器。这个API看起来很熟悉！就像 `Interface`一样， `click` 方法接受一个Python函数、输入组件和输出组件。
+- `Blocks` 由 `with` 子句组成，在该子句中创建的任何组件都会自动添加到应用程序中。
+- 组件在应用程序中按创建的顺序垂直显示，（稍后我们将介绍自定义布局！）
+- 一个 按钮 `Button` 被创建，然后添加了一个 `click` 事件监听器。这个API看起来很熟悉！就像 `Interface`一样， `click` 方法接受一个Python函数、输入组件和输出组件。
 
 #### 更多复杂性
 
@@ -229,10 +229,10 @@ with gr.Blocks() as demo:
                 image_input = gr.Image()
                 image_output = gr.Image()
             image_button = gr.Button("Flip")
-    
+
     text_button.click(flip_text, inputs=text_input, outputs=text_output)
     image_button.click(flip_image, inputs=image_input, outputs=image_output)
-    
+
 demo.launch()
 ```
 
@@ -261,7 +261,7 @@ Gradio is licensed under the Apache License 2.0 found in the [LICENSE](LICENSE) 
 
 ## 引用
 
-另外请参阅论文 *[Gradio: Hassle-Free Sharing and Testing of ML Models in the Wild](https://arxiv.org/abs/1906.02569), ICML HILL 2019*，如果您在工作中使用Gradio请引用它。
+另外请参阅论文 _[Gradio: Hassle-Free Sharing and Testing of ML Models in the Wild](https://arxiv.org/abs/1906.02569), ICML HILL 2019_，如果您在工作中使用Gradio请引用它。
 
 ```
 @article{abid2019gradio,

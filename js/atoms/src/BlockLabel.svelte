@@ -1,37 +1,33 @@
 <script lang="ts">
-	import { get_styles } from "@gradio/utils";
-
 	export let label: string | null = null;
 	export let Icon: any;
-	export let show_label: boolean = true;
-	export let disable: boolean = false;
-	export let float: boolean = true;
-
-	$: ({ styles } = get_styles({ label_container: !disable }, [
-		"label_container"
-	]));
+	export let show_label = true;
+	export let disable = false;
+	export let float = true;
 </script>
 
-<div
+<label
+	for=""
 	class:hide={!show_label}
 	class:sr-only={!show_label}
 	class:float
-	style={styles}
+	class:hide-label={disable}
+	data-testid="block-label"
 >
 	<span>
 		<Icon />
 	</span>
-
 	{label}
-</div>
+</label>
 
 <style>
-	div {
+	label {
 		display: inline-flex;
 		align-items: center;
 		z-index: var(--layer-2);
 		box-shadow: var(--block-label-shadow);
-		border: var(--block-label-border-width) solid var(--border-color-primary);
+		border: var(--block-label-border-width) solid
+			var(--block-label-border-color);
 		border-top: none;
 		border-left: none;
 		border-radius: var(--block-label-radius);
@@ -43,12 +39,16 @@
 		font-size: var(--block-label-text-size);
 		line-height: var(--line-sm);
 	}
-	div.float {
+	:global(.gr-group) label {
+		border-top-left-radius: 0;
+	}
+
+	label.float {
 		position: absolute;
 		top: var(--block-label-margin);
 		left: var(--block-label-margin);
 	}
-	div:not(.float) {
+	label:not(.float) {
 		position: static;
 		margin-top: var(--block-label-margin);
 		margin-left: var(--block-label-margin);
@@ -63,5 +63,11 @@
 		margin-right: var(--size-2);
 		width: calc(var(--block-label-text-size) - 1px);
 		height: calc(var(--block-label-text-size) - 1px);
+	}
+	.hide-label {
+		box-shadow: none;
+		border-width: 0;
+		background: transparent;
+		overflow: visible;
 	}
 </style>

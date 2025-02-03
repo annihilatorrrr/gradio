@@ -13,29 +13,70 @@ with gr.Blocks() as demo:
         btn2 = gr.Button("Button 2")
 ```
 
-To make every element in a Row have the same height, use the `equal_height` argument of the `style` method.
+You can set every element in a Row to have the same height. Configure this with the `equal_height` argument.
 
 ```python
 with gr.Blocks() as demo:
-    with gr.Row().style(equal_height=True):
+    with gr.Row(equal_height=True):
         textbox = gr.Textbox()
         btn2 = gr.Button("Button 2")
 ```
 
-Learn more about Rows in the [docs](https://gradio.app/docs/#row).
+The widths of elements in a Row can be controlled via a combination of `scale` and `min_width` arguments that are present in every Component.
+
+- `scale` is an integer that defines how an element will take up space in a Row. If scale is set to `0`, the element will not expand to take up space. If scale is set to `1` or greater, the element will expand. Multiple elements in a row will expand proportional to their scale. Below, `btn2` will expand twice as much as `btn1`, while `btn0` will not expand at all:
+
+```python
+with gr.Blocks() as demo:
+    with gr.Row():
+        btn0 = gr.Button("Button 0", scale=0)
+        btn1 = gr.Button("Button 1", scale=1)
+        btn2 = gr.Button("Button 2", scale=2)
+```
+
+- `min_width` will set the minimum width the element will take. The Row will wrap if there isn't sufficient space to satisfy all `min_width` values.
+
+Learn more about Rows in the [docs](https://gradio.app/docs/row).
 
 ## Columns and Nesting
 
-Components within a Column will be placed vertically atop each other. Since the vertical layout is the default layout for Blocks apps anyway, to be useful, Columns are usually  nested within Rows. For example:
+Components within a Column will be placed vertically atop each other. Since the vertical layout is the default layout for Blocks apps anyway, to be useful, Columns are usually nested within Rows. For example:
 
 $code_rows_and_columns
 $demo_rows_and_columns
 
 See how the first column has two Textboxes arranged vertically. The second column has an Image and Button arranged vertically. Notice how the relative widths of the two columns is set by the `scale` parameter. The column with twice the `scale` value takes up twice the width.
 
-Columns have a `min_width` parameter as well (320 pixels by default). This prevents adjacent columns from becoming too narrow on mobile screens.
+Learn more about Columns in the [docs](https://gradio.app/docs/column).
 
-Learn more about Columns in the [docs](https://gradio.app/docs/#column).
+# Fill Browser Height / Width
+
+To make an app take the full width of the browser by removing the side padding, use `gr.Blocks(fill_width=True)`. 
+
+To make top level Components expand to take the full height of the browser, use `fill_height` and apply scale to the expanding Components.
+
+```python
+import gradio as gr
+
+with gr.Blocks(fill_height=True) as demo:
+    gr.Chatbot(scale=1)
+    gr.Textbox(scale=0)
+```
+
+## Dimensions
+
+Some components support setting height and width. These parameters accept either a number (interpreted as pixels) or a string. Using a string allows the direct application of any CSS unit to the encapsulating Block element.
+
+Below is an example illustrating the use of viewport width (vw):
+
+```python
+import gradio as gr
+
+with gr.Blocks() as demo:
+    im = gr.ImageEditor(width="50vw")
+
+demo.launch()
+```
 
 ## Tabs and Accordions
 
@@ -48,23 +89,25 @@ $demo_blocks_flipper
 
 Also note the `gr.Accordion('label')` in this example. The Accordion is a layout that can be toggled open or closed. Like `Tabs`, it is a layout element that can selectively hide or show content. Any components that are defined inside of a `with gr.Accordion('label'):` will be hidden or shown when the accordion's toggle icon is clicked.
 
-Learn more about [Tabs](https://gradio.app/docs/#tab) and [Accordions](https://gradio.app/docs/#accordion) in the docs.
+Learn more about [Tabs](https://gradio.app/docs/tab) and [Accordions](https://gradio.app/docs/accordion) in the docs.
+
+## Sidebar
+
+The sidebar is a collapsible panel that renders child components on the left side of the screen and can be expanded or collapsed.
+
+For example:
+
+$code_blocks_sidebar
+$demo_blocks_sidebar
+
+Learn more about [Sidebar](https://gradio.app/docs/gradio/sidebar) in the docs.
 
 ## Visibility
 
-Both Components and Layout elements have a `visible` argument that can set initially and also updated using `gr.update()`. Setting `gr.update(visible=...)` on a Column can be used to show or hide a set of Components.
+Both Components and Layout elements have a `visible` argument that can set initially and also updated. Setting `gr.Column(visible=...)` on a Column can be used to show or hide a set of Components.
 
 $code_blocks_form
 $demo_blocks_form
-
-## Variable Number of Outputs
-
-By adjusting the visibility of components in a dynamic way, it is possible to create
-demos with Gradio that support a *variable numbers of outputs*. Here's a very simple example
-where the number of output textboxes is controlled by an input slider:
-
-$code_variable_outputs
-$demo_variable_outputs
 
 ## Defining and Rendering Components Separately
 

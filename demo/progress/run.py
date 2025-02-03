@@ -50,7 +50,7 @@ with gr.Blocks() as demo:
             pass
         return "done"
     load_random_btn.click(load_random, {text, textb}, text2)
-        
+
     # manual progress
     def clean_imgs(text, progress=gr.Progress()):
         progress(0.2, desc="Collecting Images")
@@ -92,6 +92,5 @@ with gr.Blocks() as demo:
         return "done"
     bind_internal_tqdm_btn.click(bind_internal_tqdm, {text, textb}, text2)
 
-
 if __name__ == "__main__":
-    demo.queue(concurrency_count=20).launch()
+    demo.launch()

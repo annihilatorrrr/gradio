@@ -1,31 +1,12 @@
+import { ApiData, ApiInfo, Config } from "./types";
+
 declare global {
 	interface Window {
 		__gradio_mode__: "app" | "website";
-		launchGradio: Function;
-		launchGradioFromSpaces: Function;
 		gradio_config: Config;
-		scoped_css_attach: (link: HTMLLinkElement) => void;
+		gradio_api_info: ApiInfo<ApiData> | { api: ApiInfo<ApiData> };
 		__is_colab__: boolean;
+		__gradio_space__: string | null;
+		supports_zerogpu_headers?: boolean;
 	}
-}
-
-export interface Config {
-	auth_required: boolean | undefined;
-	auth_message: string;
-	components: any[];
-	css: string | null;
-	dependencies: any[];
-	dev_mode: boolean;
-	enable_queue: boolean;
-	layout: any;
-	mode: "blocks" | "interface";
-	root: string;
-	theme: string;
-	title: string;
-	version: string;
-	is_space: boolean;
-	is_colab: boolean;
-	show_api: boolean;
-	stylesheets: string[];
-	path: string;
 }

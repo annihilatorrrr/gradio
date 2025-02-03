@@ -54,7 +54,6 @@ code,
 kbd,
 samp,
 pre {
-	font-size: 1em;
 	font-family: -var(--font-mono);
 }
 
@@ -80,7 +79,7 @@ sup {
 
 table {
 	border-color: inherit;
-	border-collapse: collapse;
+
 	text-indent: 0;
 }
 
@@ -214,6 +213,7 @@ img,
 video {
 	max-width: 100%;
 	height: auto;
+	margin: 0;
 }
 
 [hidden] {
@@ -257,9 +257,8 @@ select {
 	vertical-align: middle;
 	appearance: none;
 	border-width: 1px;
-	border-color: #6b7280;
 	background-origin: border-box;
-	background-color: #fff;
+
 	padding: 0;
 	width: 1rem;
 	height: 1rem;

@@ -1,16 +1,18 @@
-import json
+import os
 import threading
-from typing import Dict
 
-import requests
+import httpx
+
+from gradio import wasm_utils
 
 MESSAGING_API_ENDPOINT = "https://api.gradio.app/gradio-messaging/en"
 
 en = {
-    "RUNNING_LOCALLY": "Running on local URL:  {}",
-    "RUNNING_LOCALLY_SEPARATED": "Running on local URL:  {}://{}:{}",
-    "SHARE_LINK_DISPLAY": "Running on public URL: {}",
-    "COULD_NOT_GET_SHARE_LINK": "\nCould not create share link. Please check your internet connection or our status page: https://status.gradio.app",
+    "RUNNING_LOCALLY": "* Running on local URL:  {}://{}:{}",
+    "RUNNING_LOCALLY_SSR": "* Running on local URL:  {}://{}:{}, with SSR ⚡ (experimental, to disable set `ssr=False` in `launch()`)",
+    "SHARE_LINK_DISPLAY": "* Running on public URL: {}",
+    "COULD_NOT_GET_SHARE_LINK": "\nCould not create share link. Please check your internet connection or our status page: https://status.gradio.app.",
+    "COULD_NOT_GET_SHARE_LINK_MISSING_FILE": "\nCould not create share link. Missing file: {}. \n\nPlease check your internet connection. This can happen if your antivirus software blocks the download of this file. You can install manually by following these steps: \n\n1. Download this file: {}\n2. Rename the downloaded file to: {}\n3. Move the file to this location: {}",
     "COLAB_NO_LOCAL": "Cannot display local interface on google colab, public link created.",
     "PUBLIC_SHARE_TRUE": "\nTo create a public link, set `share=True` in `launch()`.",
     "MODEL_PUBLICLY_AVAILABLE_URL": "Model available publicly at: {} (may take up to a minute for link to be usable)",
@@ -20,29 +22,19 @@ en = {
     "To turn off, set debug=False in launch().",
     "COLAB_DEBUG_FALSE": "Colab notebook detected. To show errors in colab notebook, set debug=True in launch()",
     "COLAB_WARNING": "Note: opening Chrome Inspector may crash demo inside Colab notebooks.",
-    "SHARE_LINK_MESSAGE": "\nThis share link expires in 72 hours. For free permanent hosting and GPU upgrades (NEW!), check out Spaces: https://huggingface.co/spaces",
+    "SHARE_LINK_MESSAGE": "\nThis share link expires in 72 hours. For free permanent hosting and GPU upgrades, run `gradio deploy` from the terminal in the working directory to deploy to Hugging Face Spaces (https://huggingface.co/spaces)",
     "INLINE_DISPLAY_BELOW": "Interface loading below...",
-    "TIPS": [
-        "You can add authentication to your app with the `auth=` kwarg in the `launch()` command; for example: `gr.Interface(...).launch(auth=('username', 'password'))`",
-        "Let users specify why they flagged input with the `flagging_options=` kwarg; for example: `gr.Interface(..., flagging_options=['too slow', 'incorrect output', 'other'])`",
-        "You can show or hide the button for flagging with the `allow_flagging=` kwarg; for example: gr.Interface(..., allow_flagging=False)",
-        "The inputs and outputs flagged by the users are stored in the flagging directory, specified by the flagging_dir= kwarg. You can view this data through the interface by setting the examples= kwarg to the flagging directory; for example gr.Interface(..., examples='flagged')",
-        "You can add a title and description to your interface using the `title=` and `description=` kwargs. The `article=` kwarg can be used to add a description under the interface; for example gr.Interface(..., title='My app', description='Lorem ipsum'). Try using Markdown!",
-        "For a classification or regression model, set `interpretation='default'` to see why the model made a prediction.",
-    ],
+    "COULD_NOT_GET_SHARE_LINK_CHECKSUM": "\nCould not create share link. Checksum mismatch for file: {}.",
 }
 
 
-def get_updated_messaging(en: Dict):
+def get_updated_messaging(en: dict):
     try:
-        updated_messaging = requests.get(MESSAGING_API_ENDPOINT, timeout=3).json()
+        updated_messaging = httpx.get(MESSAGING_API_ENDPOINT, timeout=3).json()
         en.update(updated_messaging)
-    except (
-        requests.ConnectionError,
-        requests.exceptions.ReadTimeout,
-        json.decoder.JSONDecodeError,
-    ):  # Use default messaging
+    except Exception:  # Use default messaging
         pass
 
 
-threading.Thread(target=get_updated_messaging, args=(en,)).start()
+if os.getenv("GRADIO_ANALYTICS_ENABLED", "True") == "True" and not wasm_utils.IS_WASM:
+    threading.Thread(target=get_updated_messaging, args=(en,)).start()

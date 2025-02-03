@@ -6,19 +6,16 @@ import gradio as gr
 import datetime
 import numpy as np
 
-
 def get_time():
     return datetime.datetime.now()
 
-
 plot_end = 2 * math.pi
-
 
 def get_plot(period=1):
     global plot_end
     x = np.arange(plot_end - 2 * math.pi, plot_end, 0.02)
     y = np.sin(2 * math.pi * period * x)
-    update = gr.LinePlot.update(
+    update = gr.LinePlot(
         value=pd.DataFrame({"x": x, "y": y}),
         x="x",
         y="y",
@@ -30,7 +27,6 @@ def get_plot(period=1):
     if plot_end > 1000:
         plot_end = 2 * math.pi
     return update
-
 
 with gr.Blocks() as demo:
     with gr.Row():
@@ -55,4 +51,4 @@ with gr.Blocks() as demo:
     period.change(get_plot, period, plot, every=1, cancels=[dep])
 
 if __name__ == "__main__":
-    demo.queue().launch()
+    demo.launch()

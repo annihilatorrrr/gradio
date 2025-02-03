@@ -1,17 +1,14 @@
 import gradio as gr
-import random
-import time
+
+disease_values = [0.25, 0.5, 0.75]
 
 def xray_model(diseases, img):
-    time.sleep(4)
-    return [{disease: random.random() for disease in diseases}]
-
+    return [{disease: disease_values[idx] for idx,disease in enumerate(diseases)}]
 
 def ct_model(diseases, img):
-    time.sleep(3)
     return [{disease: 0.1 for disease in diseases}]
 
-with gr.Blocks() as demo:
+with gr.Blocks(fill_width=True) as demo:
     gr.Markdown(
         """
 # Detect Disease From Scan
@@ -20,6 +17,7 @@ With this model you can lorem ipsum
 - ipsum 2
 """
     )
+    gr.DuplicateButton()
     disease = gr.CheckboxGroup(
         info="Select the diseases you want to scan for.",
         choices=["Covid", "Malaria", "Lung Cancer"], label="Disease to Scan For"
@@ -52,7 +50,7 @@ With this model you can lorem ipsum
 
     upload_btn = gr.Button("Upload Results", variant="primary")
     upload_btn.click(
-        lambda ct, xr: time.sleep(5),
+        lambda ct, xr: None,
         inputs=[ct_results, xray_results],
         outputs=[],
     )

@@ -6,7 +6,6 @@ from PIL import Image
 import requests
 from io import BytesIO
 
-
 def create_gif(images):
     pil_images = []
     for image in images:
@@ -22,27 +21,25 @@ def create_gif(images):
             save_all=True, duration=400, loop=0)
     return fp_out
 
-
 def fake_diffusion(steps):
+    rng = np.random.default_rng()
     images = []
     for _ in range(steps):
         time.sleep(1)
-        image = np.random.random((600, 600, 3))
+        image = rng.random((600, 600, 3))
         images.append(image)
-        yield image, gr.Image.update(visible=False)
-    
+        yield image, gr.Image(visible=False)
+
     time.sleep(1)
-    image = "https://gradio-builds.s3.amazonaws.com/diffusion_image/cute_dog.jpg" 
+    image = "https://gradio-builds.s3.amazonaws.com/diffusion_image/cute_dog.jpg"
     images.append(image)
     gif_path = create_gif(images)
-    
-    yield image, gr.Image.update(value=gif_path, visible=True)
 
+    yield image, gr.Image(value=gif_path, visible=True)
 
-demo = gr.Interface(fake_diffusion, 
-                    inputs=gr.Slider(1, 10, 3), 
+demo = gr.Interface(fake_diffusion,
+                    inputs=gr.Slider(1, 10, 3, step=1),
                     outputs=["image", gr.Image(label="All Images", visible=False)])
-demo.queue()
 
 if __name__ == "__main__":
     demo.launch()

@@ -1,6 +1,6 @@
 import inspect
 import time
-from typing import Iterable
+from collections.abc import Iterable
 
 from gradio_client.documentation import document_fn
 
@@ -12,6 +12,9 @@ themes = [
     gr.themes.Soft,
     gr.themes.Monochrome,
     gr.themes.Glass,
+    gr.themes.Origin,
+    gr.themes.Citrus,
+    gr.themes.Ocean,
 ]
 colors = gr.themes.Color.all
 sizes = gr.themes.Size.all
@@ -80,14 +83,13 @@ with gr.Blocks(  # noqa: SIM117
     theme=gr.themes.Base(),
     css=css,
     title="Gradio Theme Builder",
+    head="<style id='theme_css'></style>",
 ) as demo:
     with gr.Row():
         with gr.Column(scale=1, elem_id="controls", min_width=400):
             with gr.Row():
-                undo_btn = gr.Button("Undo").style(size="sm")
-                dark_mode_btn = gr.Button("Dark Mode", variant="primary").style(
-                    size="sm"
-                )
+                undo_btn = gr.Button("Undo", size="sm")
+                dark_mode_btn = gr.Button("Dark Mode", variant="primary", size="sm")
             with gr.Tabs():
                 with gr.TabItem("Source Theme"):
                     gr.Markdown(
@@ -99,6 +101,7 @@ with gr.Blocks(  # noqa: SIM117
                         [theme.__name__ for theme in themes],
                         value="Base",
                         show_label=False,
+                        label="Theme",
                     )
                     load_theme_btn = gr.Button("Load Theme", elem_id="load_theme")
                 with gr.TabItem("Core Colors"):
@@ -253,9 +256,9 @@ with gr.Blocks(  # noqa: SIM117
                 for variable in flat_variables:
                     if variable.endswith("_dark"):
                         continue
-                    for style_type in variable_suggestions:
+                    for style_type, suggestions in variable_suggestions.items():
                         if style_type in variable:
-                            variable_suggestions[style_type].append("*" + variable)
+                            suggestions.append("*" + variable)
                             break
 
                 variable_suggestions["fill"], variable_suggestions["color"] = (
@@ -327,6 +330,8 @@ with gr.Blocks(  # noqa: SIM117
                 interactive=True,
             )
 
+            gr.Interface(lambda x: x, "number", "textbox")
+
             with gr.Row():
                 slider1 = gr.Slider(label="Slider 1")
                 slider2 = gr.Slider(label="Slider 2")
@@ -353,36 +358,34 @@ with gr.Blocks(  # noqa: SIM117
                     check = gr.Checkbox(label="Go")
                 with gr.Column(variant="panel", scale=2):
                     img = gr.Image(
-                        "https://i.ibb.co/6BgKdSj/groot.jpg", label="Image"
-                    ).style(height=320)
+                        "https://gradio-static-files.s3.us-west-2.amazonaws.com/header-image.jpg",
+                        label="Image",
+                        height=320,
+                    )
                     with gr.Row():
-                        go_btn = gr.Button(
-                            "Go", label="Primary Button", variant="primary"
-                        )
-                        clear_btn = gr.Button(
-                            "Clear", label="Secondary Button", variant="secondary"
-                        )
+                        go_btn = gr.Button("Go", variant="primary")
+                        clear_btn = gr.Button("Clear", variant="secondary")
 
-                        def go(*args):
+                        def go(*_args):
                             time.sleep(3)
-                            return "https://i.ibb.co/6BgKdSj/groot.jpg"
+                            return "https://gradio-static-files.s3.us-west-2.amazonaws.com/header-image.jpg"
 
                         go_btn.click(
-                            go, [radio, drop, drop_2, check, name], img, api_name="go"
+                            go,
+                            [radio, drop, drop_2, check, name],
+                            img,
+                            show_api=False,
                         )
 
                         def clear():
                             time.sleep(0.2)
-                            return None
 
                         clear_btn.click(clear, None, img)
 
                     with gr.Row():
-                        btn1 = gr.Button("Button 1").style(size="sm")
-                        btn2 = gr.UploadButton().style(size="sm")
-                        stop_btn = gr.Button(
-                            "Stop", label="Stop Button", variant="stop"
-                        ).style(size="sm")
+                        btn1 = gr.Button("Button 1", size="sm")
+                        btn2 = gr.UploadButton(size="sm")
+                        stop_btn = gr.Button("Stop", variant="stop", size="sm")
 
             gr.Examples(
                 examples=[
@@ -430,17 +433,18 @@ with gr.Blocks(  # noqa: SIM117
                             "https://gradio-static-files.s3.us-west-2.amazonaws.com/tower.jpg",
                             "tower",
                         ),
-                    ]
-                ).style(height="200px", columns=2)
+                    ],
+                    height="200px",
+                    columns=2,
+                )
 
             with gr.Row():
                 with gr.Column(scale=2):
                     chatbot = gr.Chatbot([("Hello", "Hi")], label="Chatbot")
+                    multimodal = gr.MultimodalTextbox(
+                        interactive=True, show_label=False
+                    )
                     chat_btn = gr.Button("Add messages")
-
-                    def chat(history):
-                        time.sleep(2)
-                        yield [["How are you?", "I am good."]]
 
                     chat_btn.click(
                         lambda history: history
@@ -448,6 +452,7 @@ with gr.Blocks(  # noqa: SIM117
                         + (time.sleep(2) or []),
                         chatbot,
                         chatbot,
+                        show_api=False,
                     )
                 with gr.Column(scale=1):
                     with gr.Accordion("Advanced Settings"):
@@ -465,8 +470,7 @@ with gr.Blocks(  # noqa: SIM117
             None,
             None,
             None,
-            _js="""() => {
-                document.head.innerHTML += "<style id='theme_css'></style>";
+            js="""() => {
                 let evt_listener = window.setTimeout(
                     () => {
                         load_theme_btn = document.querySelector('#load_theme');
@@ -478,6 +482,7 @@ with gr.Blocks(  # noqa: SIM117
                     100
                 );
             }""",
+            show_api=False,
         )
 
         theme_inputs = (
@@ -601,6 +606,7 @@ with gr.Blocks(  # noqa: SIM117
                     gr.themes.Size,
                 ],
                 core_variables,
+                strict=False,
             ):
                 if base_value.name != final_value:
                     core_diffs[value_name] = final_value
@@ -623,7 +629,21 @@ with gr.Blocks(  # noqa: SIM117
                     if getattr(source_obj, attr) != final_attr_values[final_theme_attr]:
                         diff = True
                 if diff:
-                    specific_core_diffs[value_name] = (source_class, final_attr_values)
+                    new_final_attr_values = {}
+                    # We need to update the theme keys to match the color and size attribute names
+                    for key, val in final_attr_values.items():
+                        if key.startswith(("primary_", "secondary_", "neutral_")):
+                            color_key = "c" + key.split("_")[-1]
+                            new_final_attr_values[color_key] = val
+                        elif key.startswith(("text_", "spacing_", "radius_")):
+                            size_key = key.split("_")[-1]
+                            new_final_attr_values[size_key] = val
+                        else:
+                            new_final_attr_values[key] = val
+                    specific_core_diffs[value_name] = (
+                        source_class,
+                        new_final_attr_values,
+                    )
 
             font_diffs = {}
 
@@ -638,7 +658,9 @@ with gr.Blocks(  # noqa: SIM117
                 if len(base_font_set) != len(theme_font_set) or any(
                     base_font.name != theme_font[0]
                     or isinstance(base_font, gr.themes.GoogleFont) != theme_font[1]
-                    for base_font, theme_font in zip(base_font_set, theme_font_set)
+                    for base_font, theme_font in zip(
+                        base_font_set, theme_font_set, strict=False
+                    )
                 ):
                     font_diffs[font_set_name] = [
                         f"gr.themes.GoogleFont('{font_name}')"
@@ -654,11 +676,12 @@ with gr.Blocks(  # noqa: SIM117
                 for var_name in core_var_names:
                     if var_name in specific_core_diffs:
                         cls, vals = specific_core_diffs[var_name]
-                        core_diffs_code += f"""    {var_name}=gr.themes.{cls.__name__}({', '.join(f'''{k}="{v}"''' for k, v in vals.items())}),\n"""
+                        core_diffs_code += f"""    {var_name}=gr.themes.{cls.__name__}({", ".join(f'''{k}="{v}"''' for k, v in vals.items())}),\n"""
                     elif var_name in core_diffs:
-                        core_diffs_code += (
-                            f"""    {var_name}="{core_diffs[var_name]}",\n"""
-                        )
+                        var_val = core_diffs[var_name]
+                        if var_name.endswith("_size"):
+                            var_val = var_val.split("_")[-1]
+                        core_diffs_code += f"""    {var_name}="{var_val}",\n"""
 
             font_diffs_code = ""
 
@@ -683,7 +706,7 @@ with gr.Blocks(  # noqa: SIM117
             vars_diff_code = ""
             if len(var_diffs) > 0:
                 vars_diff_code = f""".set(
-    {(',' + newline + "    ").join([f"{k}='{v}'" for k, v in var_diffs.items()])}
+    {("," + newline + "    ").join([f"{k}='{v}'" for k, v in var_diffs.items()])}
 )"""
 
             output = f"""
@@ -707,56 +730,40 @@ with gr.Blocks(theme=theme) as demo:
                 3 + 3 * len(palette_range) : 6 + 3 * len(palette_range)
             ]
             text_sizes = args[
-                6
-                + 3 * len(palette_range) : 6
+                6 + 3 * len(palette_range) : 6
                 + 3 * len(palette_range)
                 + len(size_range)
             ]
             spacing_sizes = args[
-                6
-                + 3 * len(palette_range)
-                + len(size_range) : 6
+                6 + 3 * len(palette_range) + len(size_range) : 6
                 + 3 * len(palette_range)
                 + 2 * len(size_range)
             ]
             radius_sizes = args[
-                6
-                + 3 * len(palette_range)
-                + 2 * len(size_range) : 6
+                6 + 3 * len(palette_range) + 2 * len(size_range) : 6
                 + 3 * len(palette_range)
                 + 3 * len(size_range)
             ]
             main_fonts = args[
-                6
-                + 3 * len(palette_range)
-                + 3 * len(size_range) : 6
+                6 + 3 * len(palette_range) + 3 * len(size_range) : 6
                 + 3 * len(palette_range)
                 + 3 * len(size_range)
                 + 4
             ]
             main_is_google = args[
-                6
-                + 3 * len(palette_range)
-                + 3 * len(size_range)
-                + 4 : 6
+                6 + 3 * len(palette_range) + 3 * len(size_range) + 4 : 6
                 + 3 * len(palette_range)
                 + 3 * len(size_range)
                 + 8
             ]
             mono_fonts = args[
-                6
-                + 3 * len(palette_range)
-                + 3 * len(size_range)
-                + 8 : 6
+                6 + 3 * len(palette_range) + 3 * len(size_range) + 8 : 6
                 + 3 * len(palette_range)
                 + 3 * len(size_range)
                 + 12
             ]
             mono_is_google = args[
-                6
-                + 3 * len(palette_range)
-                + 3 * len(size_range)
-                + 12 : 6
+                6 + 3 * len(palette_range) + 3 * len(size_range) + 12 : 6
                 + 3 * len(palette_range)
                 + 3 * len(size_range)
                 + 16
@@ -774,19 +781,19 @@ with gr.Blocks(theme=theme) as demo:
 
             final_main_fonts = []
             font_weights = set()
-            for attr, val in zip(flat_variables, remaining_args):
+            for attr, val in zip(flat_variables, remaining_args, strict=False):
                 if "weight" in attr:
                     font_weights.add(val)
             font_weights = sorted(font_weights)
 
-            for main_font, is_google in zip(main_fonts, main_is_google):
+            for main_font, is_google in zip(main_fonts, main_is_google, strict=False):
                 if not main_font:
                     continue
                 if is_google:
                     main_font = gr.themes.GoogleFont(main_font, weights=font_weights)
                 final_main_fonts.append(main_font)
             final_mono_fonts = []
-            for mono_font, is_google in zip(mono_fonts, mono_is_google):
+            for mono_font, is_google in zip(mono_fonts, mono_is_google, strict=False):
                 if not mono_font:
                     continue
                 if is_google:
@@ -804,7 +811,7 @@ with gr.Blocks(theme=theme) as demo:
                 font_mono=final_mono_fonts,
             )
 
-            theme.set(**dict(zip(flat_variables, remaining_args)))
+            theme.set(**dict(zip(flat_variables, remaining_args, strict=False)))
             new_step = (base_theme, args)
             if len(history) == 0 or str(history[-1]) != str(new_step):
                 history.append(new_step)
@@ -824,8 +831,8 @@ with gr.Blocks(theme=theme) as demo:
                         spacing_size,
                         radius_size,
                     ),
-                    list(zip(main_fonts, main_is_google)),
-                    list(zip(mono_fonts, mono_is_google)),
+                    list(zip(main_fonts, main_is_google, strict=False)),
+                    list(zip(mono_fonts, mono_is_google, strict=False)),
                 ),
                 theme,
             )
@@ -835,11 +842,12 @@ with gr.Blocks(theme=theme) as demo:
                 render_variables,
                 [history, base_theme_dropdown] + theme_inputs,
                 [history, secret_css, secret_font, output_code, current_theme],
+                show_api=False,
             ).then(
                 None,
                 [secret_css, secret_font],
                 None,
-                _js="""(css, fonts) => {
+                js="""(css, fonts) => {
                     document.getElementById('theme_css').innerHTML = css;
                     let existing_font_links = document.querySelectorAll('link[rel="stylesheet"][href^="https://fonts.googleapis.com/css"]');
                     existing_font_links.forEach(link => {
@@ -856,17 +864,28 @@ with gr.Blocks(theme=theme) as demo:
                         document.head.appendChild(link);
                     });
                 }""",
+                show_api=False,
             )
 
         def load_color(color_name):
             color = [color for color in colors if color.name == color_name][0]
             return [getattr(color, f"c{i}") for i in palette_range]
 
-        attach_rerender(primary_hue.select(load_color, primary_hue, primary_hues).then)
         attach_rerender(
-            secondary_hue.select(load_color, secondary_hue, secondary_hues).then
+            primary_hue.select(
+                load_color, primary_hue, primary_hues, show_api=False
+            ).then
         )
-        attach_rerender(neutral_hue.select(load_color, neutral_hue, neutral_hues).then)
+        attach_rerender(
+            secondary_hue.select(
+                load_color, secondary_hue, secondary_hues, show_api=False
+            ).then
+        )
+        attach_rerender(
+            neutral_hue.select(
+                load_color, neutral_hue, neutral_hues, show_api=False
+            ).then
+        )
         for hue_set in (primary_hues, secondary_hues, neutral_hues):
             for hue in hue_set:
                 attach_rerender(hue.blur)
@@ -875,14 +894,24 @@ with gr.Blocks(theme=theme) as demo:
             size = [size for size in sizes if size.name == size_name][0]
             return [getattr(size, i) for i in size_range]
 
-        attach_rerender(text_size.change(load_size, text_size, text_sizes).then)
         attach_rerender(
-            spacing_size.change(load_size, spacing_size, spacing_sizes).then
+            text_size.change(load_size, text_size, text_sizes, show_api=False).then
         )
-        attach_rerender(radius_size.change(load_size, radius_size, radius_sizes).then)
+        attach_rerender(
+            spacing_size.change(
+                load_size, spacing_size, spacing_sizes, show_api=False
+            ).then
+        )
+        attach_rerender(
+            radius_size.change(
+                load_size, radius_size, radius_sizes, show_api=False
+            ).then
+        )
 
         attach_rerender(
-            load_theme_btn.click(load_theme, base_theme_dropdown, theme_inputs).then
+            load_theme_btn.click(
+                load_theme, base_theme_dropdown, theme_inputs, show_api=False
+            ).then
         )
 
         for theme_box in (
@@ -900,13 +929,14 @@ with gr.Blocks(theme=theme) as demo:
             None,
             None,
             None,
-            _js="""() => {
+            js="""() => {
             if (document.querySelectorAll('.dark').length) {
                 document.querySelectorAll('.dark').forEach(el => el.classList.remove('dark'));
             } else {
                 document.querySelector('body').classList.add('dark');
             }
         }""",
+            show_api=False,
         )
 
         def undo(history_var):
@@ -919,7 +949,10 @@ with gr.Blocks(theme=theme) as demo:
 
         attach_rerender(
             undo_btn.click(
-                undo, [history], [history, base_theme_dropdown] + theme_inputs
+                undo,
+                [history],
+                [history, base_theme_dropdown] + theme_inputs,
+                show_api=False,
             ).then
         )
 
@@ -933,7 +966,7 @@ with gr.Blocks(theme=theme) as demo:
                 )
                 space_name = "/".join(theme_url.split("/")[-2:])
                 return (
-                    gr.Markdown.update(
+                    gr.Markdown(
                         value=f"Theme uploaded [here!]({theme_url})! Load it as `gr.Blocks(theme='{space_name}')`",
                         visible=True,
                     ),
@@ -941,14 +974,19 @@ with gr.Blocks(theme=theme) as demo:
                 )
             except Exception as e:
                 return (
-                    gr.Markdown.update(
+                    gr.Markdown(
                         value=f"Error: {e}",
                         visible=True,
                     ),
                     "Upload to Hub",
                 )
 
-        upload_to_hub_btn.click(lambda: "Uploading...", None, upload_to_hub_btn).then(
+        upload_to_hub_btn.click(
+            lambda: "Uploading...",
+            None,
+            upload_to_hub_btn,
+            show_api=False,
+        ).then(
             upload_to_hub,
             {
                 current_theme,
@@ -957,6 +995,7 @@ with gr.Blocks(theme=theme) as demo:
                 theme_version,
             },
             [theme_upload_status, upload_to_hub_btn],
+            show_api=False,
         )
 
 

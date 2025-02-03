@@ -1,13 +1,11 @@
 import gradio as gr
 
-css = (
-    "footer {display: none !important;} .gradio-container {min-height: 0px !important;}"
-)
-
 # sample md stolen from https://dillinger.io/
 
 md = """# Dillinger
 ## _The Last Markdown Editor, Ever_
+
+This is some `inline code`, it is good.
 
 [![Build Status](https://travis-ci.org/joemccann/dillinger.svg?branch=master)](https://travis-ci.org/joemccann/dillinger)
 
@@ -66,7 +64,7 @@ Dillinger requires [Node.js](https://nodejs.org/) v10+ to run.
 
 Install the dependencies and devDependencies and start the server.
 
-```sh
+```bash
 cd dillinger
 npm i
 node app
@@ -74,7 +72,7 @@ node app
 
 For production environments...
 
-```sh
+```bash
 npm install --production
 NODE_ENV=production node app
 ```
@@ -104,19 +102,19 @@ Open your favorite Terminal and run these commands.
 
 First Tab:
 
-```sh
+```bash
 node app
 ```
 
 Second Tab:
 
-```sh
+```bash
 gulp watch
 ```
 
 (optional) Third:
 
-```sh
+```bash
 karma test
 ```
 
@@ -124,13 +122,13 @@ karma test
 
 For production release:
 
-```sh
+```bash
 gulp build --prod
 ```
 
 Generating pre-built zip archives for distribution:
 
-```sh
+```bash
 gulp build dist --prod
 ```
 
@@ -142,7 +140,7 @@ By default, the Docker will expose port 8080, so change this within the
 Dockerfile if necessary. When ready, simply use the Dockerfile to
 build the image.
 
-```sh
+```bash
 cd dillinger
 docker build -t <youruser>/dillinger:${package.json.version} .
 ```
@@ -155,7 +153,7 @@ Once done, run the Docker image and map the port to whatever you wish on
 your host. In this example, we simply map port 8000 of the host to
 port 8080 of the Docker (or whatever port was exposed in the Dockerfile):
 
-```sh
+```bash
 docker run -d -p 8000:8080 --restart=always --cap-add=SYS_ADMIN --name=dillinger <youruser>/dillinger:${package.json.version}
 ```
 
@@ -164,8 +162,25 @@ docker run -d -p 8000:8080 --restart=always --cap-add=SYS_ADMIN --name=dillinger
 Verify the deployment by navigating to your server address in
 your preferred browser.
 
-```sh
+```bash
 127.0.0.1:8000
+```
+
+```python
+import gradio as gr
+
+gr.Blocks() as demo:
+    gr.Markdown(value=md)
+
+demo.launch()
+```
+
+```js
+function fancyAlert(arg) {
+    if(arg) {
+        $.facebox({div:'#foo'})
+    }
+}
 ```
 
 ## License
@@ -198,7 +213,7 @@ MIT
    [PlGa]: <https://github.com/RahulHP/dillinger/blob/master/plugins/googleanalytics/README.md>
 
 """
-with gr.Blocks(css=css) as demo:
-    gr.Markdown(value=md)
+with gr.Blocks() as demo:
+    gr.Markdown(value=md, header_links=True, height=400)
 
 demo.launch()

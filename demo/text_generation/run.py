@@ -5,7 +5,7 @@ generator = pipeline('text-generation', model='gpt2')
 
 def generate(text):
     result = generator(text, max_length=30, num_return_sequences=1)
-    return result[0]["generated_text"]
+    return result[0]["generated_text"]  # type: ignore
 
 examples = [
     ["The Moon's orbit around Earth has"],
@@ -14,8 +14,8 @@ examples = [
 
 demo = gr.Interface(
     fn=generate,
-    inputs=gr.inputs.Textbox(lines=5, label="Input Text"),
-    outputs=gr.outputs.Textbox(label="Generated Text"),
+    inputs=gr.Textbox(lines=5, label="Input Text"),
+    outputs=gr.Textbox(label="Generated Text"),
     examples=examples
 )
 

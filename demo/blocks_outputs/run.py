@@ -1,6 +1,5 @@
 import gradio as gr
 
-
 def make_markdown():
     return [
         [
@@ -19,7 +18,6 @@ def make_markdown():
             '<img src="https://images.unsplash.com/photo-1574613362884-f79513a5128c?fit=crop&w=500&q=80"/>',
         ],
     ]
-
 
 with gr.Blocks() as demo:
     with gr.Column():
@@ -41,7 +39,6 @@ with gr.Blocks() as demo:
         file = gr.File(show_label=False)
         video = gr.Video(show_label=False)
         image = gr.Image(show_label=False)
-        ts = gr.Timeseries(show_label=False)
         df = gr.Dataframe(show_label=False)
         html = gr.HTML(show_label=False)
         json = gr.JSON(show_label=False)
@@ -89,7 +86,6 @@ with gr.Blocks() as demo:
         )
         btn = gr.Button("Run")
         btn.click(fn=make_markdown, inputs=None, outputs=df)
-
 
 if __name__ == "__main__":
     demo.launch()

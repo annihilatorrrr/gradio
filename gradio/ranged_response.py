@@ -12,7 +12,7 @@ import aiofiles
 from aiofiles.os import stat as aio_stat
 from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException
-from starlette.responses import Response, guess_type
+from starlette.responses import Response, guess_type  # type: ignore
 from starlette.staticfiles import StaticFiles
 from starlette.types import Receive, Scope, Send
 
@@ -57,7 +57,10 @@ class RangedFileResponse(Response):
         stat_result: os.stat_result | None = None,
         method: str | None = None,
     ) -> None:
-        assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
+        if aiofiles is None:
+            raise ModuleNotFoundError(
+                "'aiofiles' must be installed to use FileResponse"
+            )
         self.path = path
         self.range = range
         self.filename = filename
@@ -79,16 +82,17 @@ class RangedFileResponse(Response):
         self.stat_result = stat_result
 
     def set_range_headers(self, range: ClosedRange) -> None:
-        assert self.stat_result
+        if not self.stat_result:
+            raise ValueError("No stat result to set range headers with")
         total_length = self.stat_result.st_size
         content_length = len(range)
-        self.headers[
-            "content-range"
-        ] = f"bytes {range.start}-{range.end}/{total_length}"
+        self.headers["content-range"] = (
+            f"bytes {range.start}-{range.end}/{total_length}"
+        )
         self.headers["content-length"] = str(content_length)
         pass
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:  # noqa: ARG002
         if self.stat_result is None:
             try:
                 stat_result = await aio_stat(self.path)

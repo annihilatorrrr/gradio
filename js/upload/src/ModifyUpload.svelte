@@ -1,46 +1,54 @@
 <script lang="ts">
-	import type { FileData } from "./types";
-
-	import { IconButton } from "@gradio/atoms";
-	import { Edit, Clear } from "@gradio/icons";
+	import { IconButton, IconButtonWrapper } from "@gradio/atoms";
+	import type { I18nFormatter } from "@gradio/utils";
+	import { Edit, Clear, Undo, Download } from "@gradio/icons";
+	import { DownloadLink } from "@gradio/wasm/svelte";
 
 	import { createEventDispatcher } from "svelte";
 
-	export let editable: boolean = false;
-	export let absolute: boolean = true;
+	export let editable = false;
+	export let undoable = false;
+	export let download: string | null = null;
+	export let i18n: I18nFormatter;
 
-	const dispatch = createEventDispatcher<{ edit: FileData; clear: null }>();
+	const dispatch = createEventDispatcher<{
+		edit?: never;
+		clear?: never;
+		undo?: never;
+	}>();
 </script>
 
-<div
-	class:not-absolute={!absolute}
-	style:position={absolute ? "absolute" : "static"}
->
+<IconButtonWrapper>
 	{#if editable}
-		<IconButton Icon={Edit} label="Edit" on:click={() => dispatch("edit")} />
+		<IconButton
+			Icon={Edit}
+			label={i18n("common.edit")}
+			on:click={() => dispatch("edit")}
+		/>
 	{/if}
+
+	{#if undoable}
+		<IconButton
+			Icon={Undo}
+			label={i18n("common.undo")}
+			on:click={() => dispatch("undo")}
+		/>
+	{/if}
+
+	{#if download}
+		<DownloadLink href={download} download>
+			<IconButton Icon={Download} label={i18n("common.download")} />
+		</DownloadLink>
+	{/if}
+
+	<slot />
 
 	<IconButton
 		Icon={Clear}
-		label="Clear"
+		label={i18n("common.clear")}
 		on:click={(event) => {
 			dispatch("clear");
 			event.stopPropagation();
 		}}
 	/>
-</div>
-
-<style>
-	div {
-		display: flex;
-		top: var(--size-2);
-		right: var(--size-2);
-		justify-content: flex-end;
-		gap: var(--spacing-sm);
-		z-index: var(--layer-1);
-	}
-
-	.not-absolute {
-		margin: var(--size-1);
-	}
-</style>
+</IconButtonWrapper>

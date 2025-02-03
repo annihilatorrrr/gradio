@@ -1,3 +1,9 @@
+"""
+We pull in a select number of spaces and build them into a single FastAPI application to preview them on HF Spaces.
+The script that is run in CI is located at: https://github.com/gradio-app/github/blob/main/packages/copy-demos/index.ts
+This is the Python version of that script for local use.
+"""
+
 import argparse
 import os
 import pathlib
@@ -8,33 +14,37 @@ import textwrap
 def copy_all_demos(source_dir: str, dest_dir: str):
     demos_to_copy = [
         "audio_debugger",
-        "altair_plot",
         "blocks_essay",
+        "blocks_group",
         "blocks_js_methods",
         "blocks_layout",
-        "blocks_mask",
         "blocks_multiple_event_triggers",
         "blocks_update",
         "calculator",
         "cancel_events",
         "chatbot_multimodal",
+        "chatinterface_streaming_echo",
+        "clear_components",
         "code",
         "fake_gan",
         "fake_diffusion_with_gif",
-        "gender_sentence_default_interpretation",
+        "file_explorer_component_events",
+        "gradio_pdf_demo",
         "image_mod_default_image",
-        "interface_parallel_load",
+        "image_editor_events",
+        "image_segmentation",
         "interface_random_slider",
-        "interface_series_load",
         "kitchen_sink",
         "kitchen_sink_random",
+        "login_with_huggingface",
         "matrix_transpose",
+        "mini_leaderboard",
         "model3D",
         "native_plots",
-        "reset_components",
         "reverse_audio",
         "stt_or_tts",
         "stream_audio",
+        "stream_audio_out",
         "stream_frames",
         "video_component",
         "zip_files",
@@ -51,7 +61,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Copy all demos to all_demos and update requirements"
     )
-    parser.add_argument("gradio_version", type=str, help="Gradio")
+    parser.add_argument("--gradio-version", type=str, help="Gradio", default="5.9.1", required=False)
+    parser.add_argument("--gradio-client-version", type=str, help="Gradio Client Version", default="1.5.2", required=False)
     args = parser.parse_args()
 
     source_dir = pathlib.Path(pathlib.Path(__file__).parent, "..", "demo")
@@ -63,13 +74,12 @@ if __name__ == "__main__":
         pathlib.Path(__file__).parent, "..", "demo", "all_demos", "requirements.txt"
     )
     requirements = f"""
-    {args.gradio_version}
+    gradio_client=={args.gradio_client_version}
+    gradio=={args.gradio_version}
+    matplotlib
     pypistats==1.1.0
-    plotly==5.10.0
-    opencv-python==4.6.0.66
-    transformers==4.21.1
-    torch==1.12.1
+    plotly
     altair
     vega_datasets
     """
-    open(reqs_file_path, "w").write(textwrap.dedent(requirements))
+    pathlib.Path(reqs_file_path).write_text(textwrap.dedent(requirements))
