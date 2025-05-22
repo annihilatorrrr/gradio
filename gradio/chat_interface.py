@@ -12,7 +12,7 @@ import os
 import warnings
 from collections.abc import AsyncGenerator, Callable, Generator, Sequence
 from pathlib import Path
-from typing import Literal, Union, cast
+from typing import Any, Literal, Union, cast
 
 import anyio
 from gradio_client.documentation import document
@@ -45,6 +45,7 @@ from gradio.events import Dependency, EditData, SelectData
 from gradio.flagging import ChatCSVLogger
 from gradio.helpers import create_examples as Examples  # noqa: N812
 from gradio.helpers import special_args, update
+from gradio.i18n import I18nData
 from gradio.layouts import Accordion, Column, Group, Row
 from gradio.routes import Request
 from gradio.themes import ThemeClass as Theme
@@ -88,7 +89,7 @@ class ChatInterface(Blocks):
         run_examples_on_click: bool = True,
         cache_examples: bool | None = None,
         cache_mode: Literal["eager", "lazy"] | None = None,
-        title: str | None = None,
+        title: str | I18nData | None = None,
         description: str | None = None,
         theme: Theme | str | None = None,
         flagging_mode: Literal["never", "manual"] | None = None,
@@ -461,6 +462,19 @@ class ChatInterface(Blocks):
             title = title[:40] + "..."
         return title or "Conversation"
 
+    @staticmethod
+    def serialize_components(conversation: list[MessageDict]) -> list[MessageDict]:
+        def inner(obj: Any) -> Any:
+            if isinstance(obj, list):
+                return [inner(item) for item in obj]
+            elif isinstance(obj, dict):
+                return {k: inner(v) for k, v in obj.items()}
+            elif isinstance(obj, Component):
+                return obj.value
+            return obj
+
+        return inner(conversation)
+
     def _save_conversation(
         self,
         index: int | None,
@@ -468,11 +482,12 @@ class ChatInterface(Blocks):
         saved_conversations: list[list[MessageDict]],
     ):
         if self.save_history:
+            serialized_conversation = self.serialize_components(conversation)
             if index is not None:
-                saved_conversations[index] = conversation
+                saved_conversations[index] = serialized_conversation
             else:
                 saved_conversations = saved_conversations or []
-                saved_conversations.insert(0, conversation)
+                saved_conversations.insert(0, serialized_conversation)
                 index = 0
         return index, saved_conversations
 
@@ -504,6 +519,7 @@ class ChatInterface(Blocks):
             Chatbot(
                 value=conversations[index],  # type: ignore
                 feedback_value=[],
+                type="messages",
             ),
         )
 
